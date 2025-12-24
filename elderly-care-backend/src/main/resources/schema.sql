@@ -1,14 +1,9 @@
 /* =========================================================
-  养老院入住管理系统 —— 带详细中文注释的统一建库脚本
+  养老院入住管理系统 —— 数据库表结构定义
   MySQL 8.x   字符集：utf8mb4
-  执行顺序：①建库 → ②字典/基础 → ③业务表 → ④索引 → ⑤初始数据
 ==========================================================*/
 
--- 1️⃣ 创建数据库并设定统一字符集（支持 emoji 生僻字）
-CREATE DATABASE IF NOT EXISTS nms DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-USE nms;
-
--- 2️⃣ 通用字典表：保存性别、支付方式、民族等下拉选项
+-- 1️⃣ 通用字典表：保存性别、支付方式、民族等下拉选项
 DROP TABLE IF EXISTS sys_dict;
 CREATE TABLE sys_dict (
   id          BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
@@ -21,7 +16,7 @@ CREATE TABLE sys_dict (
   UNIQUE KEY uk_dict_type_key (dict_type, dict_key) COMMENT '同一类型下键不能重复'
 ) COMMENT='系统统一字典表';
 
--- 3️⃣ 角色表：系统管理员、院长、护理主管、护理员、财务、前台
+-- 2️⃣ 角色表：系统管理员、院长、护理主管、护理员、财务、前台
 DROP TABLE IF EXISTS sys_role;
 CREATE TABLE sys_role (
   id        BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '角色主键',
@@ -31,7 +26,7 @@ CREATE TABLE sys_role (
   updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
 ) COMMENT='角色表';
 
--- 4️⃣ 用户表：所有可登录系统的账号（员工）
+-- 3️⃣ 用户表：所有可登录系统的账号（员工）
 DROP TABLE IF EXISTS sys_user;
 CREATE TABLE sys_user (
   id          BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '用户主键',
@@ -47,7 +42,7 @@ CREATE TABLE sys_user (
   CONSTRAINT fk_user_role FOREIGN KEY (role_id) REFERENCES sys_role(id)
 ) COMMENT='系统用户表';
 
--- 5️⃣ 房间表：维护楼层、房间号、类型、最大床位数
+-- 4️⃣ 房间表：维护楼层、房间号、类型、最大床位数
 DROP TABLE IF EXISTS room;
 CREATE TABLE room (
   id       BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '房间主键',
@@ -59,7 +54,7 @@ CREATE TABLE room (
   updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
 ) COMMENT='房间档案';
 
--- 6️⃣ 床位表：每个房间下的具体床位及状态
+-- 5️⃣ 床位表：每个房间下的具体床位及状态
 DROP TABLE IF EXISTS bed;
 CREATE TABLE bed (
   id      BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '床位主键',
@@ -72,7 +67,7 @@ CREATE TABLE bed (
   CONSTRAINT fk_bed_room FOREIGN KEY (room_id) REFERENCES room(id)
 ) COMMENT='床位档案';
 
--- 7️⃣ 护理等级表：三级护理、二级护理、一级护理及日单价
+-- 6️⃣ 护理等级表：三级护理、二级护理、一级护理及日单价
 DROP TABLE IF EXISTS care_level;
 CREATE TABLE care_level (
   level_code  VARCHAR(20) PRIMARY KEY COMMENT '等级代码，如 L1/L2/L3',
@@ -83,7 +78,7 @@ CREATE TABLE care_level (
   updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
 ) COMMENT='护理等级字典';
 
--- 8️⃣ 老人档案表：入住老人所有基本信息、健康信息、联系人、费用标准
+-- 7️⃣ 老人档案表：入住老人所有基本信息、健康信息、联系人、费用标准
 DROP TABLE IF EXISTS elder;
 CREATE TABLE elder (
   id              BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '老人主键',
@@ -115,7 +110,7 @@ CREATE TABLE elder (
   CONSTRAINT fk_elder_bed FOREIGN KEY (bed_id) REFERENCES bed(id)
 ) COMMENT='老人档案';
 
--- 9️⃣ 护理计划表：针对每个老人制定个性化护理方案
+-- 8️⃣ 护理计划表：针对每个老人制定个性化护理方案
 DROP TABLE IF EXISTS care_plan;
 CREATE TABLE care_plan (
   id           BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '计划主键',
@@ -126,7 +121,7 @@ CREATE TABLE care_plan (
   CONSTRAINT fk_plan_elder FOREIGN KEY (elder_id) REFERENCES elder(id)
 ) COMMENT='护理计划';
 
--- 🔟 护理记录表：每日生命体征、饮食、排泄、睡眠、用药、特殊情况
+-- 9️⃣ 护理记录表：每日生命体征、饮食、排泄、睡眠、用药、特殊情况
 DROP TABLE IF EXISTS care_record;
 CREATE TABLE care_record (
   id            BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '记录主键',
@@ -149,7 +144,7 @@ CREATE TABLE care_record (
   CONSTRAINT fk_record_nurse FOREIGN KEY (nurse_id) REFERENCES sys_user(id)
 ) COMMENT='日常护理记录';
 
--- 1️⃣1️⃣ 费用项目字典：住宿、护理、餐饮、医疗、其他
+-- 1️⃣0️⃣ 费用项目字典：住宿、护理、餐饮、医疗、其他
 DROP TABLE IF EXISTS fee_item;
 CREATE TABLE fee_item (
   item_code  VARCHAR(20) PRIMARY KEY COMMENT '项目代码',
@@ -160,7 +155,7 @@ CREATE TABLE fee_item (
   updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
 ) COMMENT='费用项目字典';
 
--- 1️⃣2️⃣ 月度账单主表：每月为每个老人生成一条总账单
+-- 1️⃣1️⃣ 月度账单主表：每月为每个老人生成一条总账单
 DROP TABLE IF EXISTS bill;
 CREATE TABLE bill (
   id           BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '账单主键',
@@ -175,7 +170,7 @@ CREATE TABLE bill (
   CONSTRAINT fk_bill_elder FOREIGN KEY (elder_id) REFERENCES elder(id)
 ) COMMENT='月度账单';
 
--- 1️⃣3️⃣ 账单明细：一条账单对应多条费用明细
+-- 1️⃣2️⃣ 账单明细：一条账单对应多条费用明细
 DROP TABLE IF EXISTS bill_detail;
 CREATE TABLE bill_detail (
   id         BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '明细主键',
@@ -189,57 +184,3 @@ CREATE TABLE bill_detail (
   CONSTRAINT fk_detail_bill FOREIGN KEY (bill_id) REFERENCES bill(id),
   CONSTRAINT fk_detail_item FOREIGN KEY (item_code) REFERENCES fee_item(item_code)
 ) COMMENT='账单明细';
-
-
-
-
--- 1️⃣8️⃣ 初始化必备数据
--- 8.1 角色
-INSERT INTO sys_role VALUES
-(1,'系统管理员','拥有所有权限'),
-(2,'院长','查看各类统计报表'),
-(3,'护理主管','管理护理计划与排班'),
-(4,'护理员','填写护理记录'),
-(5,'财务人员','费用计算与收款'),
-(6,'前台接待','老人入住登记');
-
--- 8.2 管理员账号：用户名 admin  密码 123456（BCrypt 加密串）
-INSERT INTO sys_user(id,username,password,real_name,email,phone,role_id,status) VALUES
-(1,'admin','$2a$10$8YrALx2z0kV8xLfxKfjEbeC8V0j2n2U5ta/qHY8pQjQUjV8Y1vU2q','超级管理员','admin@example.com','13800138001',1,1);
-
--- 8.3 房间与床位示例
-INSERT INTO room VALUES
-(1,'101','单人间',1,1),
-(2,'102','双人间',1,2),
-(3,'201','三人间',2,3);
-INSERT INTO bed(room_id,bed_no) VALUES
-(1,'101-1'),
-(2,'102-1'),(2,'102-2'),
-(3,'201-1'),(3,'201-2'),(3,'201-3');
-
--- 8.4 护理等级
-INSERT INTO care_level VALUES
-('L1','三级护理','自理老人',30),
-('L2','二级护理','半自理老人',60),
-('L3','一级护理','全护理老人',100);
-
--- 8.5 费用项目
-INSERT INTO fee_item VALUES
-('ACC','住宿费','50','住宿'),
-('CARE','护理费','60','护理'),
-('MEAL','餐饮费','30','餐饮'),
-('MED','基础医疗','20','医疗');
-
--- 8.6 字典数据
-INSERT INTO sys_dict VALUES
-(1,'gender','M','男',1),
-(2,'gender','F','女',2),
-(3,'pay_method','cash','现金',1),
-(4,'pay_method','wx','微信',2),
-(5,'pay_method','ali','支付宝',3);
-
-/* =========================================================
-  脚本执行完毕！
-  后续可按年月建立 care_record_202501 分表，代码中动态切换表名即可。
-  所有字段均带中文注释，方便直接生成文档或逆向工程。
-==========================================================*/
