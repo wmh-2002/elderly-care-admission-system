@@ -81,6 +81,10 @@
             <el-icon><Avatar /></el-icon>
             <span v-show="!isCollapse">用户管理</span>
           </el-menu-item>
+          <el-menu-item index="/roles">
+            <el-icon><UserFilled /></el-icon>
+            <span v-show="!isCollapse">角色管理</span>
+          </el-menu-item>
           <el-menu-item index="/profile">
             <el-icon><User /></el-icon>
             <span v-show="!isCollapse">个人信息</span>

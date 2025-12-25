@@ -46,6 +46,12 @@ const routes = [
         component: () => import('../views/UserManagement.vue')
       },
       {
+        path: '/roles',
+        name: 'Roles',
+        meta: { requiresAuth: true },
+        component: () => import('../views/RoleManagement.vue')
+      },
+      {
         path: '/profile',
         name: 'Profile',
         meta: { requiresAuth: true },

@@ -15,15 +15,16 @@
       <div class="search-section">
         <el-form :inline="true" :model="searchForm" class="demo-form-inline">
           <el-form-item label="用户名">
-            <el-input v-model="searchForm.username" placeholder="请输入用户名" :prefix-icon="User" />
+            <el-input v-model="searchForm.username" placeholder="请输入用户名" :prefix-icon="User" @keyup.enter="onSearch" />
           </el-form-item>
-          <el-form-item label="角色">
-            <el-select v-model="searchForm.role" placeholder="请选择角色" :prefix-icon="Avatar">
-              <el-option label="管理员" value="admin" />
-              <el-option label="护理员" value="caregiver" />
-              <el-option label="前台" value="receptionist" />
-              <el-option label="医生" value="doctor" />
-            </el-select>
+          <el-form-item label="姓名">
+            <el-input v-model="searchForm.realName" placeholder="请输入姓名" @keyup.enter="onSearch" />
+          </el-form-item>
+          <el-form-item label="邮箱">
+            <el-input v-model="searchForm.email" placeholder="请输入邮箱" @keyup.enter="onSearch" />
+          </el-form-item>
+          <el-form-item label="手机号">
+            <el-input v-model="searchForm.phone" placeholder="请输入手机号" @keyup.enter="onSearch" />
           </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="onSearch" :icon="Search">查询</el-button>
@@ -57,10 +58,10 @@
         <el-table-column prop="realName" label="真实姓名" min-width="120" fixed="left" />
         <el-table-column prop="phone" label="联系电话" min-width="130" />
         <el-table-column prop="email" label="邮箱" min-width="180" />
-        <el-table-column prop="role" label="角色" min-width="120">
+        <el-table-column prop="roleName" label="角色" min-width="120">
           <template #default="{ row }">
-            <el-tag :type="getRoleType(row.role)">
-              {{ getRoleText(row.role) }}
+            <el-tag :type="getRoleType(row.roleName)">
+              {{ row.roleName }}
             </el-tag>
           </template>
         </el-table-column>
@@ -148,22 +149,25 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { 
-  Search, 
-  Refresh, 
-  Plus, 
-  Delete, 
-  User, 
+import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  Search,
+  Refresh,
+  Plus,
+  Delete,
+  User,
   Avatar,
   Download,
   Menu
 } from '@element-plus/icons-vue'
+import userAPI from '@/api/user'
 
 // 搜索表单
 const searchForm = reactive({
   username: '',
-  role: ''
+  realName: '',
+  email: '',
+  phone: ''
 })
 
 // 用户列表数据
@@ -209,27 +213,32 @@ const userRules = {
   ]
 }
 
-// 模拟数据加载
-const loadUsers = () => {
-  // 模拟从 API 获取数据
-  const mockData = []
-  for (let i = 1; i <= 50; i++) {
-    const roles = ['admin', 'caregiver', 'receptionist', 'doctor']
-    const role = roles[Math.floor(Math.random() * roles.length)]
-    
-    mockData.push({
-      id: i,
-      username: `user${i}`,
-      realName: `员工${i}`,
-      phone: `138${Math.floor(10000000 + Math.random() * 90000000)}`,
-      email: `user${i}@example.com`,
-      role: role,
-      status: Math.random() > 0.1 ? 1 : 0, // 90% 概率启用
-      createTime: `${2022 + Math.floor(Math.random() * 3)}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`
-    })
+// 加载用户列表
+const loadUsers = async () => {
+  try {
+    const params = {
+      page: currentPage.value,
+      size: pageSize.value,
+      username: searchForm.username || undefined,
+      realName: searchForm.realName || undefined,
+      email: searchForm.email || undefined,
+      phone: searchForm.phone || undefined
+    }
+
+    const response = await userAPI.getUserList(params)
+    if (response.data.code === 200) {
+      userList.value = response.data.data.content || []
+      total.value = response.data.data.totalElements || 0
+    } else {
+      ElMessage.error(response.data.message || '获取用户列表失败')
+    }
+  } catch (error) {
+    console.error('获取用户列表失败:', error)
+    ElMessage.error('获取用户列表失败')
+    // 出错时清空数据
+    userList.value = []
+    total.value = 0
   }
-  userList.value = mockData
-  total.value = mockData.length
 }
 
 // 获取角色文本
@@ -244,26 +253,26 @@ const getRoleText = (role) => {
 }
 
 // 获取角色类型
-const getRoleType = (role) => {
-  switch(role) {
-    case 'admin': return 'danger'
-    case 'caregiver': return 'warning'
-    case 'receptionist': return 'primary'
-    case 'doctor': return 'success'
-    default: return 'info'
-  }
+const getRoleType = (roleName) => {
+  if (roleName?.includes('管理员') || roleName?.includes('admin')) return 'danger'
+  if (roleName?.includes('护理') || roleName?.includes('caregiver')) return 'warning'
+  if (roleName?.includes('前台') || roleName?.includes('receptionist')) return 'primary'
+  if (roleName?.includes('医生') || roleName?.includes('doctor')) return 'success'
+  return 'info'
 }
 
 // 搜索
 const onSearch = () => {
-  console.log('Search:', searchForm)
+  currentPage.value = 1 // 搜索时重置到第一页
   loadUsers()
 }
 
 // 重置
 const onReset = () => {
   searchForm.username = ''
-  searchForm.role = ''
+  searchForm.realName = ''
+  searchForm.email = ''
+  searchForm.phone = ''
   loadUsers()
 }
 
@@ -293,10 +302,27 @@ const viewDetails = (row) => {
 }
 
 // 删除用户
-const deleteUser = (id) => {
-  console.log('Delete user:', id)
-  // 实际应用中会调用API删除
-  loadUsers()
+const deleteUser = async (id) => {
+  try {
+    await ElMessageBox.confirm('确认删除该用户吗？此操作不可恢复。', '删除确认', {
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
+    const response = await userAPI.deleteUser(id)
+    if (response.data.code === 200) {
+      ElMessage.success('删除成功')
+      loadUsers()
+    } else {
+      ElMessage.error(response.data.message || '删除失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除用户失败:', error)
+      ElMessage.error('删除失败')
+    }
+  }
 }
 
 // 批量删除
@@ -316,13 +342,30 @@ const handleCurrentChange = (page) => {
 }
 
 // 提交表单
-const submitForm = () => {
-  userFormRef.value.validate((valid) => {
+const submitForm = async () => {
+  userFormRef.value.validate(async (valid) => {
     if (valid) {
-      console.log('Submit form:', userForm.value)
-      // 实际应用中会调用API提交数据
-      dialogVisible.value = false
-      loadUsers()
+      try {
+        let response
+        if (userForm.value.id) {
+          // 更新用户
+          response = await userAPI.updateUser(userForm.value.id, userForm.value)
+        } else {
+          // 创建用户
+          response = await userAPI.createUser(userForm.value)
+        }
+
+        if (response.data.code === 200) {
+          ElMessage.success(response.data.message || (userForm.value.id ? '更新成功' : '创建成功'))
+          dialogVisible.value = false
+          loadUsers()
+        } else {
+          ElMessage.error(response.data.message || (userForm.value.id ? '更新失败' : '创建失败'))
+        }
+      } catch (error) {
+        console.error('提交表单失败:', error)
+        ElMessage.error('操作失败')
+      }
     } else {
       console.log('Validation failed!')
     }
