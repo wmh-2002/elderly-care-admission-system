@@ -52,9 +52,9 @@
         border
       >
         <el-table-column type="selection" width="55" fixed="left" />
-        <el-table-column prop="id" label="ID" width="80" fixed="left" />
-        <el-table-column prop="name" label="分类名称" min-width="120" />
-        <el-table-column prop="description" label="分类描述" min-width="200" />
+        <el-table-column prop="levelCode" label="分类编码" width="120" fixed="left" />
+        <el-table-column prop="levelCode" label="分类名称" min-width="120" />
+        <el-table-column prop="levelName" label="分类描述" min-width="200" />
         <el-table-column prop="level" label="护理等级" min-width="120">
           <template #default="{ row }">
             <el-tag :type="getLevelType(row.level)">
@@ -69,7 +69,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" min-width="150" />
+        <el-table-column prop="createdAt" label="创建时间" min-width="150" />
         <el-table-column label="操作" min-width="220" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="editCategory(row)">编辑</el-button>
@@ -97,21 +97,21 @@
     <!-- 新增/编辑弹窗 -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="500px">
       <el-form :model="categoryForm" :rules="categoryRules" ref="categoryFormRef" label-width="100px">
-        <el-form-item label="分类名称" prop="name">
-          <el-input v-model="categoryForm.name" placeholder="请输入分类名称" :disabled="!!categoryForm.id" />
+        <el-form-item label="分类名称" prop="levelCode">
+          <el-input v-model="categoryForm.levelCode" placeholder="请输入分类名称" :disabled="!!categoryForm.id" />
         </el-form-item>
         
         <el-form-item label="护理等级" prop="level">
           <el-select v-model="categoryForm.level" placeholder="请选择护理等级" style="width: 100%">
-            <el-option label="一级护理" value="1级护理" />
-            <el-option label="二级护理" value="2级护理" />
-            <el-option label="三级护理" value="3级护理" />
-            <el-option label="特级护理" value="特级护理" />
+            <el-option label="一级护理" value="L1" />
+            <el-option label="二级护理" value="L2" />
+            <el-option label="三级护理" value="L3" />
+            <el-option label="特级护理" value="L0" />
           </el-select>
         </el-form-item>
         
-        <el-form-item label="分类描述" prop="description">
-          <el-input v-model="categoryForm.description" type="textarea" :rows="3" placeholder="请输入分类描述" />
+        <el-form-item label="分类描述" prop="levelName">
+          <el-input v-model="categoryForm.levelName" type="textarea" :rows="3" placeholder="请输入分类描述" />
         </el-form-item>
         
         <el-form-item label="状态" prop="status">
@@ -134,7 +134,8 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import api from '@/api'
 import { 
   Search, 
   Refresh, 
@@ -158,6 +159,9 @@ const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
 
+// 加载状态
+const loading = ref(false)
+
 // 选中的行
 const multipleSelection = ref([])
 
@@ -169,46 +173,68 @@ const categoryFormRef = ref()
 
 // 表单验证规则
 const categoryRules = {
-  name: [
+  levelCode: [
     { required: true, message: '请输入分类名称', trigger: 'blur' },
     { min: 2, max: 20, message: '分类名称长度应在2到20个字符之间', trigger: 'blur' }
   ],
   level: [
     { required: true, message: '请选择护理等级', trigger: 'change' }
   ],
+  levelName: [
+    { required: true, message: '请输入分类描述', trigger: 'blur' }
+  ],
   status: [
     { required: true, message: '请选择状态', trigger: 'change' }
   ]
 }
 
-// 模拟数据加载
-const loadCategories = () => {
-  // 模拟从 API 获取数据
-  const mockData = []
-  for (let i = 1; i <= 20; i++) {
-    const levels = ['1级护理', '2级护理', '3级护理', '特级护理']
-    const level = levels[Math.floor(Math.random() * levels.length)]
+// 加载护理分类数据
+const loadCategories = async () => {
+  try {
+    loading.value = true
     
-    mockData.push({
-      id: i,
-      name: `护理分类${i}`,
-      description: `这是第${i}类护理服务的描述，包含相关的护理项目和要求`,
-      level: level,
-      status: Math.random() > 0.2 ? 1 : 0, // 80% 概率启用
-      createTime: `${2022 + Math.floor(Math.random() * 3)}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`
-    })
+    // 构建查询参数
+    const params = {
+      page: currentPage.value,
+      size: pageSize.value
+    }
+    
+    // 添加筛选条件
+    if (searchForm.name) params.levelCode = searchForm.name  // 后端使用 levelCode 字段
+    if (searchForm.status) params.status = searchForm.status
+
+    const response = await api.nursingCategory.getNursingCategoryList(params)
+    
+    if (response.data.code === 200) {
+      const data = response.data.data
+      categoryList.value = data.content || []
+      total.value = data.total || 0
+    } else {
+      ElMessage.error(response.data.message || '获取护理分类数据失败')
+    }
+  } catch (error) {
+    console.error('获取护理分类数据失败:', error)
+    let errorMessage = '获取护理分类数据失败'
+    if (error.response) {
+      errorMessage = error.response.data?.message || `错误: ${error.response.status}`
+    } else if (error.request) {
+      errorMessage = '网络错误，请检查网络连接'
+    } else {
+      errorMessage = error.message || '未知错误'
+    }
+    ElMessage.error(errorMessage)
+  } finally {
+    loading.value = false
   }
-  categoryList.value = mockData
-  total.value = mockData.length
 }
 
 // 获取等级类型
 const getLevelType = (level) => {
   switch(level) {
-    case '1级护理': return 'primary'
-    case '2级护理': return 'success'
-    case '3级护理': return 'warning'
-    case '特级护理': return 'danger'
+    case 'L1': return 'primary'
+    case 'L2': return 'success'
+    case 'L3': return 'warning'
+    case 'L0': return 'danger'  // 特级护理
     default: return 'info'
   }
 }
@@ -216,17 +242,17 @@ const getLevelType = (level) => {
 // 获取等级文本
 const getLevelText = (level) => {
   switch(level) {
-    case '1级护理': return '一级护理'
-    case '2级护理': return '二级护理'
-    case '3级护理': return '三级护理'
-    case '特级护理': return '特级护理'
+    case 'L1': return '一级护理'
+    case 'L2': return '二级护理'
+    case 'L3': return '三级护理'
+    case 'L0': return '特级护理'
     default: return level
   }
 }
 
 // 搜索
 const onSearch = () => {
-  console.log('Search:', searchForm)
+  currentPage.value = 1
   loadCategories()
 }
 
@@ -234,6 +260,7 @@ const onSearch = () => {
 const onReset = () => {
   searchForm.name = ''
   searchForm.status = ''
+  currentPage.value = 1
   loadCategories()
 }
 
@@ -241,17 +268,28 @@ const onReset = () => {
 const addCategory = () => {
   dialogTitle.value = '新增护理分类'
   categoryForm.value = {
-    level: '1级护理',
+    level: 'L1',
     status: 1
   }
   dialogVisible.value = true
 }
 
 // 编辑分类
-const editCategory = (row) => {
-  dialogTitle.value = '编辑护理分类'
-  categoryForm.value = { ...row }
-  dialogVisible.value = true
+const editCategory = async (row) => {
+  try {
+    // 获取完整的护理分类信息用于编辑
+    const response = await api.nursingCategory.getNursingCategoryByCode(row.levelCode)
+    if (response.data.code === 200) {
+      dialogTitle.value = '编辑护理分类'
+      categoryForm.value = { ...response.data.data }
+      dialogVisible.value = true
+    } else {
+      ElMessage.error(response.data.message || '获取护理分类信息失败')
+    }
+  } catch (error) {
+    console.error('获取护理分类详细信息失败:', error)
+    ElMessage.error('获取护理分类详细信息失败')
+  }
 }
 
 // 查看详情
@@ -259,14 +297,44 @@ const viewDetails = (row) => {
   console.log('View details for:', row)
   dialogTitle.value = '护理分类详情'
   categoryForm.value = { ...row }
-  // 禁用表单编辑
+  // 在实际应用中，可能会跳转到详情页面
 }
 
 // 删除分类
-const deleteCategory = (id) => {
-  console.log('Delete category:', id)
-  // 实际应用中会调用API删除
-  loadCategories()
+const deleteCategory = async (levelCode) => {
+  try {
+    await ElMessageBox.confirm(
+      '此操作将永久删除该护理分类, 是否继续?',
+      '警告',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+    
+    const response = await api.nursingCategory.deleteNursingCategory(levelCode)
+    if (response.data.code === 200) {
+      ElMessage.success('删除成功')
+      // 重新加载数据
+      loadCategories()
+    } else {
+      ElMessage.error(response.data.message || '删除失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') { // 用户取消操作
+      console.error('删除护理分类失败:', error)
+      let errorMessage = '删除失败'
+      if (error.response) {
+        errorMessage = error.response.data?.message || `错误: ${error.response.status}`
+      } else if (error.request) {
+        errorMessage = '网络错误，请检查网络连接'
+      } else {
+        errorMessage = error.message || '未知错误'
+      }
+      ElMessage.error(errorMessage)
+    }
+  }
 }
 
 // 批量删除
@@ -277,6 +345,7 @@ const handleSelectionChange = (val) => {
 // 分页处理
 const handleSizeChange = (size) => {
   pageSize.value = size
+  currentPage.value = 1
   loadCategories()
 }
 
@@ -285,14 +354,40 @@ const handleCurrentChange = (page) => {
   loadCategories()
 }
 
-// 提交表单
-const submitForm = () => {
-  categoryFormRef.value.validate((valid) => {
+// 提交表单（新增或编辑）
+const submitForm = async () => {
+  categoryFormRef.value.validate(async (valid) => {
     if (valid) {
-      console.log('Submit form:', categoryForm.value)
-      // 实际应用中会调用API提交数据
-      dialogVisible.value = false
-      loadCategories()
+      try {
+        let response
+        if (categoryForm.value.levelCode) {
+          // 编辑现有护理分类
+          response = await api.nursingCategory.updateNursingCategory(categoryForm.value.levelCode, categoryForm.value)
+        } else {
+          // 创建新护理分类
+          response = await api.nursingCategory.createNursingCategory(categoryForm.value)
+        }
+        
+        if (response.data.code === 200) {
+          ElMessage.success(categoryForm.value.levelCode ? '更新成功' : '新增成功')
+          dialogVisible.value = false
+          // 重新加载数据
+          loadCategories()
+        } else {
+          ElMessage.error(response.data.message || (categoryForm.value.levelCode ? '更新失败' : '新增失败'))
+        }
+      } catch (error) {
+        console.error(categoryForm.value.levelCode ? '更新护理分类失败' : '新增护理分类失败', error)
+        let errorMessage = categoryForm.value.levelCode ? '更新失败' : '新增失败'
+        if (error.response) {
+          errorMessage = error.response.data?.message || `错误: ${error.response.status}`
+        } else if (error.request) {
+          errorMessage = '网络错误，请检查网络连接'
+        } else {
+          errorMessage = error.message || '未知错误'
+        }
+        ElMessage.error(errorMessage)
+      }
     } else {
       console.log('Validation failed!')
     }
