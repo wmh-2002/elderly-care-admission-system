@@ -18,13 +18,13 @@
             <el-input v-model="searchForm.name" placeholder="请输入姓名" :prefix-icon="User" />
           </el-form-item>
           <el-form-item label="状态">
-            <el-select v-model="searchForm.status" placeholder="请选择状态" :prefix-icon="CircleCheck">
+            <el-select v-model="searchForm.status" placeholder="请选择状态" :prefix-icon="CircleCheck" clearable @change="onSearch" style="width: 100px">
               <el-option label="在院" value="1" />
               <el-option label="退住" value="0" />
             </el-select>
           </el-form-item>
           <el-form-item label="护理等级">
-            <el-select v-model="searchForm.careLevel" placeholder="请选择护理等级" :prefix-icon="Management">
+            <el-select v-model="searchForm.careLevel" placeholder="请选择护理等级" :prefix-icon="Management" clearable @change="onSearch" style="width: 120px">
               <el-option label="一级护理" value="1" />
               <el-option label="二级护理" value="2" />
               <el-option label="三级护理" value="3" />

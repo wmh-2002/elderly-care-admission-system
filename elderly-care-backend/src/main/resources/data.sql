@@ -27,9 +27,9 @@ INSERT INTO bed(room_id,bed_no) VALUES
 
 -- 4️ 护理等级
 INSERT INTO care_level VALUES
-('L1','三级护理','自理老人',30),
-('L2','二级护理','半自理老人',60),
-('L3','一级护理','全护理老人',100);
+(1, 'L1','三级护理','自理老人',30),
+(2, 'L2','二级护理','半自理老人',60),
+(3, 'L3','一级护理','全护理老人',100);
 
 -- 5️ 费用项目
 INSERT INTO fee_item VALUES

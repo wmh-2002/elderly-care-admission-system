@@ -11,18 +11,23 @@
           <span class="card-title">护理计划管理</span>
         </div>
       </template>
-      
+
       <!-- 搜索和筛选区域 -->
       <div class="search-section">
         <el-form :inline="true" :model="searchForm" class="demo-form-inline">
           <el-form-item label="老人姓名">
             <el-input v-model="searchForm.elderName" placeholder="请输入老人姓名" :prefix-icon="User" />
           </el-form-item>
-          <el-form-item label="计划状态">
-            <el-select v-model="searchForm.status" placeholder="请选择计划状态" :prefix-icon="CircleCheck">
-              <el-option label="进行中" value="进行中" />
-              <el-option label="已完成" value="已完成" />
-              <el-option label="已取消" value="已取消" />
+          <el-form-item label="护理等级">
+            <el-select v-model="searchForm.careLevelId" placeholder="请选择护理等级" :prefix-icon="CircleCheck" clearable @change="onSearch" style="width: 140px">
+              <el-option
+                v-for="category in categoryOptions"
+                :key="category.levelCode"
+                :label="category.levelName"
+                :value="category.levelCode"
+              >
+                {{ category.levelName }}
+              </el-option>
             </el-select>
           </el-form-item>
           <el-form-item>
@@ -31,7 +36,7 @@
           </el-form-item>
         </el-form>
       </div>
-      
+
       <!-- 操作按钮区域 -->
       <div class="operation-section">
         <div class="button-group-left">
@@ -43,7 +48,7 @@
           <el-button size="default" @click="toggleView" :icon="Menu">视图</el-button>
         </div>
       </div>
-      
+
       <!-- 数据表格 -->
       <el-table
         :data="planList"
@@ -55,10 +60,8 @@
         <el-table-column type="selection" width="55" fixed="left" />
         <el-table-column prop="id" label="ID" width="80" fixed="left" />
         <el-table-column prop="elderName" label="老人姓名" min-width="120" fixed="left" />
-        <el-table-column prop="categoryName" label="护理分类" min-width="120" />
+        <el-table-column prop="careLevelName" label="护理等级" min-width="120" />
         <el-table-column prop="planName" label="计划名称" min-width="150" />
-        <el-table-column prop="startDate" label="开始日期" min-width="120" />
-        <el-table-column prop="endDate" label="结束日期" min-width="120" />
         <el-table-column prop="status" label="状态" min-width="100">
           <template #default="{ row }">
             <el-tag :type="getStatusType(row.status)">
@@ -66,7 +69,9 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="assignedNurse" label="分配护理员" min-width="120" />
+        <el-table-column prop="startDate" label="开始日期" min-width="120" />
+        <el-table-column prop="endDate" label="结束日期" min-width="120" />
+        <el-table-column prop="assignedNurseName" label="分配护理员" min-width="120" />
         <el-table-column label="操作" min-width="220" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="editPlan(row)">编辑</el-button>
@@ -75,7 +80,7 @@
           </template>
         </el-table-column>
       </el-table>
-      
+
       <!-- 分页 -->
       <div class="pagination-section">
         <el-pagination
@@ -90,17 +95,17 @@
         />
       </div>
     </el-card>
-    
+
     <!-- 新增/编辑弹窗 -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="700px">
       <el-form :model="planForm" :rules="planRules" ref="planFormRef" label-width="120px">
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="老人姓名" prop="elderId">
-              <el-select 
-                v-model="planForm.elderId" 
-                placeholder="请选择老人" 
-                style="width: 100%" 
+              <el-select
+                v-model="planForm.elderId"
+                placeholder="请选择老人"
+                style="width: 100%"
                 @change="handleElderChange"
               >
                 <el-option
@@ -115,43 +120,47 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="护理分类" prop="categoryId">
-              <el-select v-model="planForm.categoryId" placeholder="请选择护理分类" style="width: 100%">
+            <el-form-item label="护理等级" prop="careLevelId">
+              <el-select v-model="planForm.careLevelId" placeholder="请选择护理等级" style="width: 100%">
                 <el-option
                   v-for="category in categoryOptions"
-                  :key="category.id"
-                  :label="category.name"
-                  :value="category.id"
+                  :key="category.levelCode"
+                  :label="category.levelName"
+                  :value="category.levelCode"
                 >
-                  {{ category.name }} ({{ category.level }})
+                  {{ category.levelName }}
                 </el-option>
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
-        
+
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="计划名称" prop="planName">
-              <el-input v-model="planForm.planName" placeholder="请输入计划名称" />
+            <el-form-item label="计划状态" prop="status">
+              <el-select v-model="planForm.status" placeholder="请选择计划状态" style="width: 100%">
+                <el-option label="进行中" value="进行中" />
+                <el-option label="已完成" value="已完成" />
+                <el-option label="已取消" value="已取消" />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="分配护理员" prop="nurseId">
-              <el-select v-model="planForm.nurseId" placeholder="请选择护理员" style="width: 100%">
+            <el-form-item label="分配护理员" prop="assignedNurseId">
+              <el-select v-model="planForm.assignedNurseId" placeholder="请选择分配护理员" style="width: 100%">
                 <el-option
                   v-for="nurse in nurseOptions"
                   :key="nurse.id"
                   :label="nurse.realName"
                   :value="nurse.id"
                 >
-                  {{ nurse.realName }} ({{ nurse.username }})
+                  {{ nurse.realName }}
                 </el-option>
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
-        
+
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="开始日期" prop="startDate">
@@ -160,7 +169,7 @@
                 type="date"
                 placeholder="选择开始日期"
                 format="YYYY-MM-DD"
-                value-format="YYYY-MM-DD"
+                value-format="YYYY-MM-DD HH:mm:ss"
                 style="width: 100%"
               />
             </el-form-item>
@@ -172,26 +181,18 @@
                 type="date"
                 placeholder="选择结束日期"
                 format="YYYY-MM-DD"
-                value-format="YYYY-MM-DD"
+                value-format="YYYY-MM-DD HH:mm:ss"
                 style="width: 100%"
               />
             </el-form-item>
           </el-col>
         </el-row>
-        
-        <el-form-item label="计划描述" prop="description">
-          <el-input v-model="planForm.description" type="textarea" :rows="4" placeholder="请输入护理计划的详细描述" />
-        </el-form-item>
-        
-        <el-form-item label="计划状态" prop="status">
-          <el-select v-model="planForm.status" placeholder="请选择计划状态" style="width: 100%">
-            <el-option label="进行中" value="进行中" />
-            <el-option label="已完成" value="已完成" />
-            <el-option label="已取消" value="已取消" />
-          </el-select>
+
+        <el-form-item label="计划内容" prop="planContent" style="width: 100%">
+          <el-input v-model="planForm.planContent" type="textarea" :rows="6" placeholder="请输入护理计划的详细内容" />
         </el-form-item>
       </el-form>
-      
+
       <template #footer>
         <span class="dialog-footer">
           <el-button size="default" @click="dialogVisible = false">取消</el-button>
@@ -204,13 +205,14 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { 
-  Search, 
-  Refresh, 
-  Plus, 
-  Delete, 
-  User, 
+import { ElMessage, ElMessageBox } from 'element-plus'
+import api from '@/api'
+import {
+  Search,
+  Refresh,
+  Plus,
+  Delete,
+  User,
   CircleCheck,
   Download,
   Menu
@@ -219,7 +221,7 @@ import {
 // 搜索表单
 const searchForm = reactive({
   elderName: '',
-  status: ''
+  careLevelId: null
 })
 
 // 计划列表数据
@@ -247,99 +249,115 @@ const planRules = {
   elderId: [
     { required: true, message: '请选择老人', trigger: 'change' }
   ],
-  categoryId: [
-    { required: true, message: '请选择护理分类', trigger: 'change' }
-  ],
-  planName: [
-    { required: true, message: '请输入计划名称', trigger: 'blur' }
+  status: [
+    { required: true, message: '请选择计划状态', trigger: 'change' }
   ],
   startDate: [
     { required: true, message: '请选择开始日期', trigger: 'change' }
   ],
   endDate: [
     { required: true, message: '请选择结束日期', trigger: 'change' },
-    { 
+    {
       validator: (rule, value, callback) => {
-        if (planForm.value.startDate && value < planForm.value.startDate) {
+        if (planForm.value.startDate && value && new Date(value) < new Date(planForm.value.startDate)) {
           callback(new Error('结束日期不能早于开始日期'))
         } else {
           callback()
         }
-      }, 
-      trigger: 'change' 
+      },
+      trigger: 'change'
     }
   ],
-  status: [
-    { required: true, message: '请选择计划状态', trigger: 'change' }
+  planContent: [
+    { required: true, message: '请输入计划内容', trigger: 'blur' }
   ]
 }
 
-// 模拟数据加载
-const loadPlans = () => {
-  // 模拟从 API 获取数据
-  const mockData = []
-  for (let i = 1; i <= 30; i++) {
-    const statusOptions = ['进行中', '已完成', '已取消']
-    const status = statusOptions[Math.floor(Math.random() * statusOptions.length)]
-    
-    mockData.push({
-      id: i,
-      elderId: Math.floor(Math.random() * 50) + 1,
-      elderName: `老人${Math.floor(Math.random() * 50) + 1}`,
-      categoryName: `护理分类${Math.floor(Math.random() * 5) + 1}`,
-      planName: `护理计划-${i}`,
-      description: `为老人${Math.floor(Math.random() * 50) + 1}制定的详细护理计划`,
-      startDate: `${2023 + Math.floor(Math.random() * 2)}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
-      endDate: `${2023 + Math.floor(Math.random() * 2)}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
-      status: status,
-      assignedNurse: `护理员${Math.floor(Math.random() * 10) + 1}`,
-      nurseId: Math.floor(Math.random() * 10) + 1
-    })
+// 加载护理计划列表
+const loadPlans = async () => {
+  try {
+    const params = {
+      page: currentPage.value, // 后端分页从1开始
+      size: pageSize.value,
+      planContent: searchForm.elderName || undefined, // 使用planContent字段搜索内容
+      careLevelId: searchForm.careLevelId || undefined // 添加护理等级筛选参数
+    }
+
+    const response = await api.nursingPlan.getNursingPlanList(params)
+    if (response.data.code === 200) {
+      planList.value = response.data.data.content.map(plan => ({
+        ...plan,
+        // 将后端返回的字段映射到前端表格所需的字段
+        id: plan.id,
+        elderId: plan.elderId,
+        elderName: plan.elderName,
+        careLevelId: plan.careLevelId,
+        careLevelName: plan.careLevelName,
+        status: plan.status || '进行中',
+        startDate: plan.startDate ? new Date(plan.startDate).toISOString().split('T')[0] : '',
+        endDate: plan.endDate ? new Date(plan.endDate).toISOString().split('T')[0] : '',
+        assignedNurseName: plan.assignedNurseName || '暂无分配',
+        assignedNurseId: plan.assignedNurseId,
+        planContent: plan.planContent,
+        planName: plan.planContent ? plan.planContent.substring(0, 20) + '...' : '护理计划',
+        createTime: plan.createTime,
+        updateTime: plan.updateTime
+      }))
+      total.value = response.data.data.totalElements
+    } else {
+      ElMessage.error(response.data.message || '获取护理计划列表失败')
+    }
+  } catch (error) {
+    console.error('获取护理计划列表失败:', error)
+    ElMessage.error('获取护理计划列表失败')
   }
-  planList.value = mockData
-  total.value = mockData.length
 }
 
 // 加载老人选项数据
-const loadElders = () => {
-  const mockElders = []
-  for (let i = 1; i <= 50; i++) {
-    mockElders.push({
-      id: i,
-      name: `老人${i}`,
-      elderNo: `ELDER${String(i).padStart(4, '0')}`
-    })
+const loadElders = async () => {
+  try {
+    // 从老人API获取老人列表
+    const response = await api.elder.getElderList({ page: 1, size: 100 }) // 获取所有老人
+    if (response.data.code === 200) {
+      elderOptions.value = response.data.data.content || []
+    } else {
+      console.error('获取老人列表失败:', response.data.message)
+    }
+  } catch (error) {
+    console.error('获取老人列表失败:', error)
   }
-  elderOptions.value = mockElders
 }
 
 // 加载护理分类选项数据
-const loadCategories = () => {
-  const mockCategories = []
-  for (let i = 1; i <= 10; i++) {
-    const levels = ['1级护理', '2级护理', '3级护理', '特级护理']
-    const level = levels[Math.floor(Math.random() * levels.length)]
-    
-    mockCategories.push({
-      id: i,
-      name: `护理分类${i}`,
-      level: level
-    })
+const loadCategories = async () => {
+  try {
+    // 从护理分类API获取护理等级列表
+    const response = await api.nursingCategory.getNursingCategoryList({ page: 1, size: 100 }) // 获取所有护理分类
+    if (response.data.code === 200) {
+      // Map the response to ensure correct field names for the dropdown
+      categoryOptions.value = response.data.data.content || []
+    } else {
+      console.error('获取护理分类列表失败:', response.data.message)
+    }
+  } catch (error) {
+    console.error('获取护理分类列表失败:', error)
   }
-  categoryOptions.value = mockCategories
 }
 
-// 加载护理员选项数据
-const loadNurses = () => {
-  const mockNurses = []
-  for (let i = 1; i <= 20; i++) {
-    mockNurses.push({
-      id: i,
-      realName: `护理员${i}`,
-      username: `nurse${i}`
-    })
+// 加载护理员选项数据（从用户API获取角色为护理员的用户）
+const loadNurses = async () => {
+  try {
+    // 从用户API获取用户列表，这里假设需要获取所有用户然后筛选护理员
+    const response = await api.auth.getUsers({ page: 1, size: 100 })
+    if (response.data.code === 200) {
+      // 过滤出护理员角色的用户（这里可能需要根据实际角色ID调整）
+      nurseOptions.value = response.data.data.content || []
+    } else {
+      console.error('获取用户列表失败:', response.data.message)
+    }
+  } catch (error) {
+    console.error('获取用户列表失败:', error)
   }
-  nurseOptions.value = mockNurses
 }
 
 // 获取状态类型
@@ -354,14 +372,15 @@ const getStatusType = (status) => {
 
 // 搜索
 const onSearch = () => {
-  console.log('Search:', searchForm)
+  currentPage.value
   loadPlans()
 }
 
 // 重置
 const onReset = () => {
   searchForm.elderName = ''
-  searchForm.status = ''
+  searchForm.careLevelId = null
+  currentPage.value = 1
   loadPlans()
 }
 
@@ -369,31 +388,75 @@ const onReset = () => {
 const addPlan = () => {
   dialogTitle.value = '新增护理计划'
   planForm.value = {
-    status: '进行中'
+    elderId: null,
+    careLevelId: null,
+    status: '进行中',
+    startDate: null,
+    endDate: null,
+    assignedNurseId: null,
+    planContent: ''
   }
   dialogVisible.value = true
 }
 
 // 编辑计划
-const editPlan = (row) => {
-  dialogTitle.value = '编辑护理计划'
-  planForm.value = { ...row }
-  dialogVisible.value = true
+const editPlan = async (row) => {
+  try {
+    dialogTitle.value = '编辑护理计划'
+    // 获取完整的护理计划信息
+    const response = await api.nursingPlan.getNursingPlanById(row.id)
+    if (response.data.code === 200) {
+      planForm.value = { ...response.data.data }
+      dialogVisible.value = true
+    } else {
+      ElMessage.error(response.data.message || '获取护理计划详情失败')
+    }
+  } catch (error) {
+    console.error('获取护理计划详情失败:', error)
+    ElMessage.error('获取护理计划详情失败')
+  }
 }
 
 // 查看详情
-const viewDetails = (row) => {
-  console.log('View details for:', row)
-  dialogTitle.value = '护理计划详情'
-  planForm.value = { ...row }
-  // 禁用表单编辑
+const viewDetails = async (row) => {
+  try {
+    dialogTitle.value = '护理计划详情'
+    // 获取完整的护理计划信息
+    const response = await api.nursingPlan.getNursingPlanById(row.id)
+    if (response.data.code === 200) {
+      planForm.value = { ...response.data.data }
+      dialogVisible.value = true
+    } else {
+      ElMessage.error(response.data.message || '获取护理计划详情失败')
+    }
+  } catch (error) {
+    console.error('获取护理计划详情失败:', error)
+    ElMessage.error('获取护理计划详情失败')
+  }
 }
 
 // 删除计划
-const deletePlan = (id) => {
-  console.log('Delete plan:', id)
-  // 实际应用中会调用API删除
-  loadPlans()
+const deletePlan = async (id) => {
+  try {
+    await ElMessageBox.confirm('确定要删除这个护理计划吗？', '警告', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
+    const response = await api.nursingPlan.deleteNursingPlan(id)
+    if (response.data.code === 200) {
+      ElMessage.success(response.data.message || '删除成功')
+      loadPlans()
+    } else {
+      ElMessage.error(response.data.message || '删除失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') { // 用户取消删除
+      console.error('删除护理计划失败:', error)
+      ElMessage.error('删除失败')
+    }
+  }
 }
 
 // 批量删除
@@ -404,6 +467,7 @@ const handleSelectionChange = (val) => {
 // 分页处理
 const handleSizeChange = (size) => {
   pageSize.value = size
+  currentPage.value = 1
   loadPlans()
 }
 
@@ -418,17 +482,49 @@ const handleElderChange = (elderId) => {
 }
 
 // 提交表单
-const submitForm = () => {
-  planFormRef.value.validate((valid) => {
-    if (valid) {
-      console.log('Submit form:', planForm.value)
-      // 实际应用中会调用API提交数据
-      dialogVisible.value = false
-      loadPlans()
-    } else {
-      console.log('Validation failed!')
+const submitForm = async () => {
+  const valid = await planFormRef.value.validate().catch(() => false)
+  if (valid) {
+    try {
+      let response
+      if (planForm.value.id) {
+        // 更新护理计划
+        response = await api.nursingPlan.updateNursingPlan(planForm.value.id, {
+          elderId: planForm.value.elderId,
+          careLevelId: planForm.value.careLevelId,
+          status: planForm.value.status,
+          startDate: planForm.value.startDate,
+          endDate: planForm.value.endDate,
+          assignedNurseId: planForm.value.assignedNurseId,
+          planContent: planForm.value.planContent
+        })
+      } else {
+        // 创建护理计划
+        response = await api.nursingPlan.createNursingPlan({
+          elderId: planForm.value.elderId,
+          careLevelId: planForm.value.careLevelId,
+          status: planForm.value.status,
+          startDate: planForm.value.startDate,
+          endDate: planForm.value.endDate,
+          assignedNurseId: planForm.value.assignedNurseId,
+          planContent: planForm.value.planContent
+        })
+      }
+
+      if (response.data.code === 200) {
+        ElMessage.success(response.data.message || (planForm.value.id ? '更新成功' : '创建成功'))
+        dialogVisible.value = false
+        loadPlans()
+      } else {
+        ElMessage.error(response.data.message || (planForm.value.id ? '更新失败' : '创建失败'))
+      }
+    } catch (error) {
+      console.error(planForm.value.id ? '更新护理计划失败:' : '创建护理计划失败:', error)
+      ElMessage.error(planForm.value.id ? '更新失败' : '创建失败')
     }
-  })
+  } else {
+    console.log('Validation failed!')
+  }
 }
 
 // 导出表格数据

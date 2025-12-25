@@ -339,7 +339,6 @@ onMounted(() => {
 <style scoped>
 .elder-detail-container {
   padding: 0;
-  height: 100vh;
   display: flex;
   flex-direction: column;
   overflow-y: auto;

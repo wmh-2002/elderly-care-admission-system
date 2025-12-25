@@ -29,6 +29,10 @@
             <el-icon><User /></el-icon>
             <span v-show="!isCollapse">老人档案</span>
           </el-menu-item>
+          <el-menu-item index="/nursing-categories">
+            <el-icon><FolderOpened /></el-icon>
+            <span v-show="!isCollapse">护理分类</span>
+          </el-menu-item>
         </el-sub-menu>
         
         <el-sub-menu index="nursing">
@@ -36,10 +40,6 @@
             <el-icon><CaretRight /></el-icon>
             <span v-show="!isCollapse">护理管理</span>
           </template>
-          <el-menu-item index="/nursing-categories">
-            <el-icon><FolderOpened /></el-icon>
-            <span v-show="!isCollapse">护理分类</span>
-          </el-menu-item>
           <el-menu-item index="/nursing-plans">
             <el-icon><Document /></el-icon>
             <span v-show="!isCollapse">护理计划</span>

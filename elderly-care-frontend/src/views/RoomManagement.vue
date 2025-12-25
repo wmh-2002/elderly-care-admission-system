@@ -15,17 +15,17 @@
       <div class="search-section">
         <el-form :inline="true" :model="searchForm" class="demo-form-inline">
           <el-form-item label="房间号">
-            <el-input v-model="searchForm.roomNo" placeholder="请输入房间号" :prefix-icon="House" />
+            <el-input v-model="searchForm.roomNo" placeholder="请输入房间号" :prefix-icon="House" @keyup.enter="onSearch" />
           </el-form-item>
           <el-form-item label="房间类型">
-            <el-select v-model="searchForm.roomType" placeholder="请选择房间类型" :prefix-icon="OfficeBuilding">
+            <el-select v-model="searchForm.roomType" placeholder="请选择房间类型" :prefix-icon="OfficeBuilding" clearable filterable @change="onSearch" style="width: 120px">
               <el-option label="单人间" value="单人间" />
               <el-option label="双人间" value="双人间" />
               <el-option label="多人间" value="多人间" />
             </el-select>
           </el-form-item>
           <el-form-item label="楼层">
-            <el-input v-model="searchForm.floor" placeholder="请输入楼层" :prefix-icon="Histogram" />
+            <el-input v-model="searchForm.floor" placeholder="请输入楼层" :prefix-icon="Histogram" @keyup.enter="onSearch" />
           </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="onSearch" :icon="Search">查询</el-button>
@@ -59,7 +59,7 @@
         <el-table-column prop="roomType" label="房间类型" min-width="120" fixed="left" />
         <el-table-column prop="floor" label="楼层" min-width="80" />
         <el-table-column prop="maxBed" label="最大床位数" min-width="120" />
-        <el-table-column prop="occupiedBed" label="已用床位数" min-width="150">
+        <!-- <el-table-column prop="occupiedBed" label="已用床位数" min-width="150">
           <template #default="{ row }">
             <el-progress :percentage="Math.round((row.occupiedBed / row.maxBed) * 100)" :show-text="false" :color="getPercentageColor(Math.round((row.occupiedBed / row.maxBed) * 100))" />
             <span>{{ row.occupiedBed }} / {{ row.maxBed }}</span>
@@ -71,7 +71,7 @@
               {{ row.occupiedBed === 0 ? '空闲' : row.occupiedBed < row.maxBed ? '部分占用' : '已满' }}
             </el-tag>
           </template>
-        </el-table-column>
+        </el-table-column> -->
         <el-table-column label="操作" min-width="220" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="editRoom(row)">编辑</el-button>
@@ -132,18 +132,19 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { 
-  Search, 
-  Refresh, 
-  Plus, 
-  Delete, 
+import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  Search,
+  Refresh,
+  Plus,
+  Delete,
   House,
-  OfficeBuilding, 
+  OfficeBuilding,
   Histogram,
   Download,
   Menu
 } from '@element-plus/icons-vue'
+import roomAPI from '@/api/room'
 
 // 搜索表单
 const searchForm = reactive({
@@ -183,25 +184,31 @@ const roomRules = {
   ]
 }
 
-// 模拟数据加载
-const loadRooms = () => {
-  // 模拟从 API 获取数据
-  const mockData = []
-  for (let i = 1; i <= 50; i++) {
-    const maxBed = [1, 2, 4, 6][Math.floor(Math.random() * 4)] // 随机生成床位数
-    const occupiedBed = Math.min(Math.floor(Math.random() * (maxBed + 1)), maxBed) // 已用床位数不能超过最大床位数
-    
-    mockData.push({
-      id: i,
-      roomNo: `${Math.floor(i/10) + 1}${String(i%10).padStart(2, '0')}`,
-      roomType: ['单人间', '双人间', '多人间'][Math.floor(Math.random() * 3)],
-      floor: Math.floor(i/10) + 1,
-      maxBed: maxBed,
-      occupiedBed: occupiedBed
-    })
+// 加载房间列表
+const loadRooms = async () => {
+  try {
+    const params = {
+      page: currentPage.value,
+      size: pageSize.value,
+      roomNo: searchForm.roomNo || undefined,
+      roomType: searchForm.roomType || undefined,
+      floor: searchForm.floor ? parseInt(searchForm.floor) : undefined
+    }
+
+    const response = await roomAPI.getRoomList(params)
+    if (response.data.code === 200) {
+      roomList.value = response.data.data.content || []
+      total.value = response.data.data.totalElements || 0
+    } else {
+      ElMessage.error(response.data.message || '获取房间列表失败')
+    }
+  } catch (error) {
+    console.error('获取房间列表失败:', error)
+    ElMessage.error('获取房间列表失败')
+    // 出错时清空数据
+    roomList.value = []
+    total.value = 0
   }
-  roomList.value = mockData
-  total.value = mockData.length
 }
 
 // 获取进度条颜色
@@ -217,7 +224,7 @@ const getPercentageColor = (percentage) => {
 
 // 搜索
 const onSearch = () => {
-  console.log('Search:', searchForm)
+  currentPage.value = 1 // 搜索时重置到第一页
   loadRooms()
 }
 
@@ -249,17 +256,34 @@ const editRoom = (row) => {
 
 // 查看详情
 const viewDetails = (row) => {
-  console.log('View details for:', row)
   dialogTitle.value = '房间详情'
   roomForm.value = { ...row }
-  // 禁用表单编辑
+  // 这里可以设置只读模式或者打开详情弹窗
+  dialogVisible.value = true
 }
 
 // 删除房间
-const deleteRoom = (id) => {
-  console.log('Delete room:', id)
-  // 实际应用中会调用API删除
-  loadRooms()
+const deleteRoom = async (id) => {
+  try {
+    await ElMessageBox.confirm('确认删除该房间吗？此操作不可恢复。', '删除确认', {
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
+    const response = await roomAPI.deleteRoom(id)
+    if (response.data.code === 200) {
+      ElMessage.success('删除成功')
+      loadRooms()
+    } else {
+      ElMessage.error(response.data.message || '删除失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除房间失败:', error)
+      ElMessage.error('删除失败')
+    }
+  }
 }
 
 // 批量删除
@@ -279,13 +303,30 @@ const handleCurrentChange = (page) => {
 }
 
 // 提交表单
-const submitForm = () => {
-  roomFormRef.value.validate((valid) => {
+const submitForm = async () => {
+  roomFormRef.value.validate(async (valid) => {
     if (valid) {
-      console.log('Submit form:', roomForm.value)
-      // 实际应用中会调用API提交数据
-      dialogVisible.value = false
-      loadRooms()
+      try {
+        let response
+        if (roomForm.value.id) {
+          // 更新房间
+          response = await roomAPI.updateRoom(roomForm.value.id, roomForm.value)
+        } else {
+          // 创建房间
+          response = await roomAPI.createRoom(roomForm.value)
+        }
+
+        if (response.data.code === 200) {
+          ElMessage.success(response.data.message || (roomForm.value.id ? '更新成功' : '创建成功'))
+          dialogVisible.value = false
+          loadRooms()
+        } else {
+          ElMessage.error(response.data.message || (roomForm.value.id ? '更新失败' : '创建失败'))
+        }
+      } catch (error) {
+        console.error('提交表单失败:', error)
+        ElMessage.error('操作失败')
+      }
     } else {
       console.log('Validation failed!')
     }

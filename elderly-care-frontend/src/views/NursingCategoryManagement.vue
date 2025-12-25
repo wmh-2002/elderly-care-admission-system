@@ -18,12 +18,6 @@
           <el-form-item label="分类名称">
             <el-input v-model="searchForm.name" placeholder="请输入分类名称" :prefix-icon="Document" />
           </el-form-item>
-          <el-form-item label="状态">
-            <el-select v-model="searchForm.status" placeholder="请选择状态" :prefix-icon="CircleCheck">
-              <el-option label="启用" value="1" />
-              <el-option label="禁用" value="0" />
-            </el-select>
-          </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="onSearch" :icon="Search">查询</el-button>
             <el-button @click="onReset" :icon="Refresh">重置</el-button>
@@ -52,20 +46,13 @@
         border
       >
         <el-table-column type="selection" width="55" fixed="left" />
-        <el-table-column prop="levelCode" label="分类编码" width="120" fixed="left" />
-        <el-table-column prop="levelCode" label="分类名称" min-width="120" />
-        <el-table-column prop="levelName" label="分类描述" min-width="200" />
-        <el-table-column prop="level" label="护理等级" min-width="120">
+        <el-table-column prop="levelCode" label="护理等级" width="120" fixed="left" />
+        <el-table-column prop="levelName" label="护理名称" min-width="120" />
+        <el-table-column prop="description" label="护理描述" min-width="200" />
+        <el-table-column prop="dailyPrice" label="标准价钱" min-width="120">
           <template #default="{ row }">
-            <el-tag :type="getLevelType(row.level)">
-              {{ getLevelText(row.level) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="status" label="状态" min-width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'danger'">
-              {{ row.status === 1 ? '启用' : '禁用' }}
+            <el-tag>
+              {{row.dailyPrice}} ￥
             </el-tag>
           </template>
         </el-table-column>
@@ -97,12 +84,12 @@
     <!-- 新增/编辑弹窗 -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="500px">
       <el-form :model="categoryForm" :rules="categoryRules" ref="categoryFormRef" label-width="100px">
-        <el-form-item label="分类名称" prop="levelCode">
-          <el-input v-model="categoryForm.levelCode" placeholder="请输入分类名称" :disabled="!!categoryForm.id" />
+        <el-form-item label="护理名称" prop="levelName">
+          <el-input v-model="categoryForm.levelName" placeholder="请输入分类名称" :disabled="!!categoryForm.id" />
         </el-form-item>
         
-        <el-form-item label="护理等级" prop="level">
-          <el-select v-model="categoryForm.level" placeholder="请选择护理等级" style="width: 100%">
+        <el-form-item label="护理等级" prop="levelCode">
+          <el-select v-model="categoryForm.levelCode" placeholder="请选择护理等级" style="width: 100%">
             <el-option label="一级护理" value="L1" />
             <el-option label="二级护理" value="L2" />
             <el-option label="三级护理" value="L3" />
@@ -110,16 +97,13 @@
           </el-select>
         </el-form-item>
         
-        <el-form-item label="分类描述" prop="levelName">
-          <el-input v-model="categoryForm.levelName" type="textarea" :rows="3" placeholder="请输入分类描述" />
+        <el-form-item label="标准价钱" prop="dailyPrice">
+          <el-input v-model="categoryForm.dailyPrice" placeholder="请输入标准价钱" />
+        </el-form-item>
+        <el-form-item label="分类描述" prop="description">
+          <el-input v-model="categoryForm.description" type="textarea" :rows="3" placeholder="请输入分类描述" />
         </el-form-item>
         
-        <el-form-item label="状态" prop="status">
-          <el-select v-model="categoryForm.status" placeholder="请选择状态" style="width: 100%">
-            <el-option label="启用" :value="1" />
-            <el-option label="禁用" :value="0" />
-          </el-select>
-        </el-form-item>
       </el-form>
       
       <template #footer>
@@ -174,17 +158,10 @@ const categoryFormRef = ref()
 // 表单验证规则
 const categoryRules = {
   levelCode: [
-    { required: true, message: '请输入分类名称', trigger: 'blur' },
-    { min: 2, max: 20, message: '分类名称长度应在2到20个字符之间', trigger: 'blur' }
-  ],
-  level: [
-    { required: true, message: '请选择护理等级', trigger: 'change' }
+    { required: true, message: '请选择护理等级', trigger: 'blur' }
   ],
   levelName: [
-    { required: true, message: '请输入分类描述', trigger: 'blur' }
-  ],
-  status: [
-    { required: true, message: '请选择状态', trigger: 'change' }
+    { required: true, message: '请输入分类名称', trigger: 'blur' }
   ]
 }
 
@@ -200,7 +177,7 @@ const loadCategories = async () => {
     }
     
     // 添加筛选条件
-    if (searchForm.name) params.levelCode = searchForm.name  // 后端使用 levelCode 字段
+    if (searchForm.name) params.levelName = searchForm.name  // 后端使用 levelCode 字段
     if (searchForm.status) params.status = searchForm.status
 
     const response = await api.nursingCategory.getNursingCategoryList(params)

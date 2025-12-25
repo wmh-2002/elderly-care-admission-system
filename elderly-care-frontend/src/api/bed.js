@@ -29,6 +29,36 @@ const bedAPI = {
   // 删除床位
   deleteBed(id) {
     return apiClient.delete(`/beds/${id}`)
+  },
+
+  // 根据房间ID获取床位列表
+  getBedsByRoomId(roomId) {
+    return apiClient.get(`/beds/room/${roomId}`)
+  },
+
+  // 更新床位状态
+  updateBedStatus(id, status) {
+    return apiClient.put(`/beds/${id}/status`, { status })
+  },
+
+  // 设为空闲状态
+  setBedAvailable(id) {
+    return apiClient.put(`/beds/${id}/available`)
+  },
+
+  // 设为已入住状态
+  setBedOccupied(id) {
+    return apiClient.put(`/beds/${id}/occupied`)
+  },
+
+  // 设为维修状态
+  setBedMaintenance(id) {
+    return apiClient.put(`/beds/${id}/maintenance`)
+  },
+
+  // 获取指定房间的空闲床位
+  getAvailableBedsByRoom(roomId) {
+    return apiClient.get(`/beds/available/room/${roomId}`)
   }
 }
 

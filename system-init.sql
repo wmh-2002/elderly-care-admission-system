@@ -75,7 +75,8 @@ CREATE TABLE bed (
 -- 7️⃣ 护理等级表：三级护理、二级护理、一级护理及日单价
 DROP TABLE IF EXISTS care_level;
 CREATE TABLE care_level (
-  level_code  VARCHAR(20) PRIMARY KEY COMMENT '等级代码，如 L1/L2/L3',
+  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '等级id',
+  level_code  VARCHAR(20) NOT NULL COMMENT '等级代码，如 L1/L2/L3',
   level_name  VARCHAR(50) NOT NULL COMMENT '等级名称',
   description VARCHAR(500) COMMENT '描述',
   daily_price DECIMAL(10,2) NOT NULL COMMENT '日单价（元）',
@@ -120,6 +121,11 @@ DROP TABLE IF EXISTS care_plan;
 CREATE TABLE care_plan (
   id           BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '计划主键',
   elder_id     BIGINT NOT NULL COMMENT '老人→elder',
+  care_level_id BIGINT NOT NULL COMMENT '护理级别id',
+  status VARCHAR(20) COMMENT '状态',
+  start_date DATE COMMENT '开始日期',
+  end_date DATE COMMENT '结束日期',
+  assigned_nurse_id BIGINT NOT NULL COMMENT '用户（护工） -> user',
   plan_content TEXT NOT NULL COMMENT '计划内容（JSON 或长文本）',
   create_time  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   update_time  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最近修改',

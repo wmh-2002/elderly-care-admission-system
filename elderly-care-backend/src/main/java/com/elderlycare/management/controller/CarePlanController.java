@@ -29,12 +29,14 @@ public class CarePlanController {
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
             @RequestParam(required = false) Long elderId,
+            @RequestParam(required = false) String careLevelId,
             @RequestParam(required = false) String planContent) {
 
         CarePlanQueryRequest request = new CarePlanQueryRequest();
         request.setPage(page);
         request.setSize(size);
         request.setElderId(elderId);
+        request.setCareLevelId(careLevelId);
         request.setPlanContent(planContent);
 
         try {

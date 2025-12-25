@@ -14,17 +14,24 @@
       <!-- 搜索和筛选区域 -->
       <div class="search-section">
         <el-form :inline="true" :model="searchForm" class="demo-form-inline">
-          <el-form-item label="房间号">
-            <el-input v-model="searchForm.roomNo" placeholder="请输入房间号" :prefix-icon="House" />
+          <el-form-item label="房间">
+            <el-select v-model="searchForm.roomId" placeholder="请选择房间" clearable filterable @change="onSearch" style="width: 140px">
+              <el-option
+                v-for="room in roomOptions"
+                :key="room.id"
+                :label="`${room.roomNo}(${room.roomType})`"
+                :value="room.id"
+              />
+            </el-select>
           </el-form-item>
           <el-form-item label="床位号">
-            <el-input v-model="searchForm.bedNo" placeholder="请输入床位号" :prefix-icon="List" />
+            <el-input v-model="searchForm.bedNo" placeholder="请输入床位号" :prefix-icon="List" @keyup.enter="onSearch" />
           </el-form-item>
           <el-form-item label="状态">
-            <el-select v-model="searchForm.status" placeholder="请选择状态" :prefix-icon="CircleCheck">
-              <el-option label="空闲" value="0" />
-              <el-option label="已入住" value="1" />
-              <el-option label="维修" value="2" />
+            <el-select v-model.number="searchForm.status" placeholder="请选择状态" :prefix-icon="CircleCheck" clearable @change="onSearch" style="width: 120px">
+              <el-option label="空闲" :value="0" />
+              <el-option label="已入住" :value="1" />
+              <el-option label="维修" :value="2" />
             </el-select>
           </el-form-item>
           <el-form-item>
@@ -38,7 +45,7 @@
       <div class="operation-section">
         <div class="button-group-left">
           <el-button type="primary" size="default" @click="addBed" :icon="Plus">新增床位</el-button>
-          <el-button type="danger" size="default" :disabled="!multipleSelection.length" :icon="Delete">批量删除</el-button>
+          <el-button type="danger" size="default" :disabled="!multipleSelection.length" @click="batchDeleteBeds" :icon="Delete">批量删除</el-button>
         </div>
         <div class="button-group-right">
           <el-button size="default" @click="exportTable" :icon="Download">导出</el-button>
@@ -67,11 +74,26 @@
           </template>
         </el-table-column>
         <el-table-column prop="checkinDate" label="入住日期" min-width="120" />
-        <el-table-column label="操作" min-width="220" fixed="right">
+        <el-table-column label="操作" min-width="320" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="editBed(row)" :disabled="row.status === 1">编辑</el-button>
             <el-button size="small" type="danger" @click="deleteBed(row.id)" :disabled="row.status === 1">删除</el-button>
             <el-button size="small" type="primary" @click="viewDetails(row)">详情</el-button>
+            <el-dropdown @command="(command) => updateBedStatus(row.id, command)" style="margin-left: 8px;">
+              <el-button size="small">
+                更新状态
+                <el-icon class="el-icon--right">
+                  <ArrowDown />
+                </el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item :disabled="row.status === 0" command="0">设为空闲</el-dropdown-item>
+                  <el-dropdown-item :disabled="row.status === 1" command="1">设为已入住</el-dropdown-item>
+                  <el-dropdown-item :disabled="row.status === 2" command="2">设为维修</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </template>
         </el-table-column>
       </el-table>
@@ -132,22 +154,25 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { 
-  Search, 
-  Refresh, 
-  Plus, 
-  Delete, 
+import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  Search,
+  Refresh,
+  Plus,
+  Delete,
   House,
   List,
   CircleCheck,
   Download,
-  Menu
+  Menu,
+  ArrowDown
 } from '@element-plus/icons-vue'
+import bedAPI from '@/api/bed'
+import roomAPI from '@/api/room'
 
 // 搜索表单
 const searchForm = reactive({
-  roomNo: '',
+  roomId: null,
   bedNo: '',
   status: ''
 })
@@ -183,44 +208,48 @@ const bedRules = {
   ]
 }
 
-// 模拟数据加载
-const loadBeds = () => {
-  // 模拟从 API 获取数据
-  const mockData = []
-  for (let i = 1; i <= 200; i++) {
-    const status = Math.floor(Math.random() * 3) // 0: 空闲, 1: 已入住, 2: 维修
-    const elderName = status === 1 ? `老人${i}` : ''
-    const elderNo = status === 1 ? `ELDER${String(i).padStart(4, '0')}` : ''
-    const checkinDate = status === 1 ? `${2023 + Math.floor(Math.random() * 2)}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}` : ''
-    
-    mockData.push({
-      id: i,
-      roomId: Math.floor(i/4) + 1,
-      roomNo: `${Math.floor(i/20) + 1}${String((i/4) % 10).padStart(2, '0')}`,
-      bedNo: `${Math.floor(i/20) + 1}${String((i/4) % 10).padStart(2, '0')}-${i % 4 + 1}`,
-      elderName: elderName,
-      elderNo: elderNo,
-      status: status,
-      checkinDate: checkinDate
-    })
+// 加载床位列表
+const loadBeds = async () => {
+  try {
+    const params = {
+      page: currentPage.value,
+      size: pageSize.value,
+      roomId: searchForm.roomId ? parseInt(searchForm.roomId) : undefined,
+      bedNo: searchForm.bedNo || undefined,
+      status: searchForm.status !== '' ? parseInt(searchForm.status) : undefined
+    }
+
+    const response = await bedAPI.getBedList(params)
+    if (response.data.code === 200) {
+      bedList.value = response.data.data.content || []
+      total.value = response.data.data.totalElements || 0
+    } else {
+      ElMessage.error(response.data.message || '获取床位列表失败')
+    }
+  } catch (error) {
+    console.error('获取床位列表失败:', error)
+    ElMessage.error('获取床位列表失败')
+    // 出错时清空数据
+    bedList.value = []
+    total.value = 0
   }
-  bedList.value = mockData
-  total.value = mockData.length
 }
 
 // 加载房间选项
-const loadRooms = () => {
-  // 模拟从 API 获取房间数据
-  const mockRooms = []
-  for (let i = 1; i <= 50; i++) {
-    mockRooms.push({
-      id: i,
-      roomNo: `${Math.floor(i/10) + 1}${String(i%10).padStart(2, '0')}`,
-      roomType: ['单人间', '双人间', '多人间'][Math.floor(Math.random() * 3)],
-      floor: Math.floor(i/10) + 1
-    })
+const loadRooms = async () => {
+  try {
+    const response = await roomAPI.getRoomList({ page: 1, size: 1000 }) // 获取所有房间作为选项
+    if (response.data.code === 200) {
+      roomOptions.value = response.data.data.content || []
+    } else {
+      ElMessage.error(response.data.message || '获取房间列表失败')
+      roomOptions.value = []
+    }
+  } catch (error) {
+    console.error('获取房间列表失败:', error)
+    ElMessage.error('获取房间列表失败')
+    roomOptions.value = []
   }
-  roomOptions.value = mockRooms
 }
 
 // 获取状态文本
@@ -245,13 +274,13 @@ const getStatusType = (status) => {
 
 // 搜索
 const onSearch = () => {
-  console.log('Search:', searchForm)
+  currentPage.value = 1 // 搜索时重置到第一页
   loadBeds()
 }
 
 // 重置
 const onReset = () => {
-  searchForm.roomNo = ''
+  searchForm.roomId = null
   searchForm.bedNo = ''
   searchForm.status = ''
   loadBeds()
@@ -287,10 +316,27 @@ const viewDetails = (row) => {
 }
 
 // 删除床位
-const deleteBed = (id) => {
-  console.log('Delete bed:', id)
-  // 实际应用中会调用API删除
-  loadBeds()
+const deleteBed = async (id) => {
+  try {
+    await ElMessageBox.confirm('确认删除该床位吗？此操作不可恢复。', '删除确认', {
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
+    const response = await bedAPI.deleteBed(id)
+    if (response.data.code === 200) {
+      ElMessage.success('删除成功')
+      loadBeds()
+    } else {
+      ElMessage.error(response.data.message || '删除失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除床位失败:', error)
+      ElMessage.error('删除失败')
+    }
+  }
 }
 
 // 批量删除
@@ -310,13 +356,30 @@ const handleCurrentChange = (page) => {
 }
 
 // 提交表单
-const submitForm = () => {
-  bedFormRef.value.validate((valid) => {
+const submitForm = async () => {
+  bedFormRef.value.validate(async (valid) => {
     if (valid) {
-      console.log('Submit form:', bedForm.value)
-      // 实际应用中会调用API提交数据
-      dialogVisible.value = false
-      loadBeds()
+      try {
+        let response
+        if (bedForm.value.id) {
+          // 更新床位
+          response = await bedAPI.updateBed(bedForm.value.id, bedForm.value)
+        } else {
+          // 创建床位
+          response = await bedAPI.createBed(bedForm.value)
+        }
+
+        if (response.data.code === 200) {
+          ElMessage.success(response.data.message || (bedForm.value.id ? '更新成功' : '创建成功'))
+          dialogVisible.value = false
+          loadBeds()
+        } else {
+          ElMessage.error(response.data.message || (bedForm.value.id ? '更新失败' : '创建失败'))
+        }
+      } catch (error) {
+        console.error('提交表单失败:', error)
+        ElMessage.error('操作失败')
+      }
     } else {
       console.log('Validation failed!')
     }
@@ -339,6 +402,75 @@ const toggleView = () => {
     ElMessage.info('已切换到卡片视图')
   } else {
     ElMessage.info('已切换到表格视图')
+  }
+}
+
+// 更新床位状态
+const updateBedStatus = async (bedId, status) => {
+  try {
+    let response
+    const statusNum = parseInt(status)
+
+    switch (statusNum) {
+      case 0:
+        response = await bedAPI.setBedAvailable(bedId)
+        break
+      case 1:
+        response = await bedAPI.setBedOccupied(bedId)
+        break
+      case 2:
+        response = await bedAPI.setBedMaintenance(bedId)
+        break
+      default:
+        ElMessage.error('无效的状态值')
+        return
+    }
+
+    if (response.data.code === 200) {
+      const statusTexts = ['空闲', '已入住', '维修']
+      ElMessage.success(`床位已设为${statusTexts[statusNum]}`)
+      loadBeds()
+    } else {
+      ElMessage.error(response.data.message || '状态更新失败')
+    }
+  } catch (error) {
+    console.error('更新床位状态失败:', error)
+    ElMessage.error('状态更新失败')
+  }
+}
+
+// 批量删除床位
+const batchDeleteBeds = async () => {
+  if (!multipleSelection.value.length) {
+    ElMessage.warning('请先选择要删除的床位')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(`确认删除选中的 ${multipleSelection.value.length} 个床位吗？此操作不可恢复。`, '批量删除确认', {
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
+    // 逐个删除选中的床位
+    const deletePromises = multipleSelection.value.map(bed => bedAPI.deleteBed(bed.id))
+    const results = await Promise.allSettled(deletePromises)
+
+    const successCount = results.filter(result => result.status === 'fulfilled' && result.value.data.code === 200).length
+    const failCount = results.length - successCount
+
+    if (successCount > 0) {
+      ElMessage.success(`成功删除 ${successCount} 个床位${failCount > 0 ? `，失败 ${failCount} 个` : ''}`)
+      loadBeds()
+    } else {
+      ElMessage.error('批量删除失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('批量删除床位失败:', error)
+      ElMessage.error('批量删除失败')
+    }
   }
 }
 

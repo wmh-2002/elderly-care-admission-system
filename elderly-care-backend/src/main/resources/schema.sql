@@ -70,12 +70,14 @@ CREATE TABLE bed (
 -- 6️⃣ 护理等级表：三级护理、二级护理、一级护理及日单价
 DROP TABLE IF EXISTS care_level;
 CREATE TABLE care_level (
-  level_code  VARCHAR(20) PRIMARY KEY COMMENT '等级代码，如 L1/L2/L3',
+  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '等级id',
+  level_code  VARCHAR(20) NOT NULL COMMENT '等级代码，如 L1/L2/L3',
   level_name  VARCHAR(50) NOT NULL COMMENT '等级名称',
   description VARCHAR(500) COMMENT '描述',
   daily_price DECIMAL(10,2) NOT NULL COMMENT '日单价（元）',
   created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+  updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  UNIQUE KEY uk_level_code (level_code) COMMENT '等级代码唯一索引，外键引用需要'
 ) COMMENT='护理等级字典';
 
 -- 7️⃣ 老人档案表：入住老人所有基本信息、健康信息、联系人、费用标准
@@ -107,18 +109,25 @@ CREATE TABLE elder (
   status          TINYINT DEFAULT 1 COMMENT '状态：1 在院  0 退住',
   created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  CONSTRAINT fk_elder_bed FOREIGN KEY (bed_id) REFERENCES bed(id)
+  CONSTRAINT fk_elder_bed FOREIGN KEY (bed_id) REFERENCES bed(id),
+  CONSTRAINT fk_elder_care_level FOREIGN KEY (care_level) REFERENCES care_level(level_code)
 ) COMMENT='老人档案';
 
--- 8️⃣ 护理计划表：针对每个老人制定个性化护理方案
+-- 9️⃣ 护理计划表：针对每个老人制定个性化护理方案
 DROP TABLE IF EXISTS care_plan;
 CREATE TABLE care_plan (
   id           BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '计划主键',
   elder_id     BIGINT NOT NULL COMMENT '老人→elder',
+  care_level_id VARCHAR(20) NOT NULL COMMENT '护理级别代码→care_level.level_code',
+  status VARCHAR(20) COMMENT '状态',
+  start_date DATE COMMENT '开始日期',
+  end_date DATE COMMENT '结束日期',
+  assigned_nurse_id BIGINT NOT NULL COMMENT '用户（护工） -> user',
   plan_content TEXT NOT NULL COMMENT '计划内容（JSON 或长文本）',
   create_time  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   update_time  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最近修改',
-  CONSTRAINT fk_plan_elder FOREIGN KEY (elder_id) REFERENCES elder(id)
+  CONSTRAINT fk_plan_elder FOREIGN KEY (elder_id) REFERENCES elder(id),
+  CONSTRAINT fk_plan_care_level FOREIGN KEY (care_level_id) REFERENCES care_level(level_code)
 ) COMMENT='护理计划';
 
 -- 9️⃣ 护理记录表：每日生命体征、饮食、排泄、睡眠、用药、特殊情况
