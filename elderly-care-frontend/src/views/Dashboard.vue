@@ -38,8 +38,8 @@
                   <el-icon :size="30"><Present /></el-icon>
                 </div>
                 <div class="stat-info2">
-                  <div class="stat-number2">24</div>
-                  <div class="stat-label2">今日活动</div>
+                  <div class="stat-number2">{{ additionalStats[0]?.value || 0 }}</div>
+                  <div class="stat-label2">{{ additionalStats[0]?.label || '今日活动' }}</div>
                 </div>
               </div>
             </el-card>
@@ -51,8 +51,8 @@
                   <el-icon :size="30"><Phone /></el-icon>
                 </div>
                 <div class="stat-info2">
-                  <div class="stat-number2">8</div>
-                  <div class="stat-label2">家属探访</div>
+                  <div class="stat-number2">{{ additionalStats[1]?.value || 0 }}</div>
+                  <div class="stat-label2">{{ additionalStats[1]?.label || '家属探访' }}</div>
                 </div>
               </div>
             </el-card>
@@ -64,8 +64,8 @@
                   <el-icon :size="30"><Document /></el-icon>
                 </div>
                 <div class="stat-info2">
-                  <div class="stat-number2">5</div>
-                  <div class="stat-label2">待处理事项</div>
+                  <div class="stat-number2">{{ additionalStats[2]?.value || 0 }}</div>
+                  <div class="stat-label2">{{ additionalStats[2]?.label || '待处理事项' }}</div>
                 </div>
               </div>
             </el-card>
@@ -122,7 +122,6 @@
           </div>
         </el-card>
         
-        
       </el-col>
       
       <!-- 右侧 - 快速操作和待办事项 -->
@@ -151,8 +150,6 @@
           </div>
         </el-card>
         
-        
-        
         <!-- 入住率图表 -->
         <el-card class="box-card occupancy-card">
           <template #header>
@@ -175,9 +172,8 @@
           </div>
         </el-card>
         
-        </el-col>
+      </el-col>
     </el-row>
-    
     
   </div>
 </template>
@@ -189,6 +185,7 @@ import {
   Bell, Check, Calendar, Document,
   ChatLineRound, Phone, Clock, Present
 } from '@element-plus/icons-vue'
+import api from '@/api'
 
 // 用户信息
 const username = ref('管理员')
@@ -198,28 +195,28 @@ const notificationCount = ref(3)
 // 统计数据
 const statsData = ref([
   { 
-    value: 128, 
+    value: 0, 
     label: '在院老人', 
     icon: 'User', 
     color: '#67C23A',
     cardClass: 'elder-card'
   },
   { 
-    value: 86, 
+    value: 0, 
     label: '房间总数', 
     icon: 'OfficeBuilding', 
     color: '#409EFF',
     cardClass: 'room-card'
   },
   { 
-    value: 12, 
+    value: 0, 
     label: '空闲床位', 
     icon: 'House', 
     color: '#E6A23C',
     cardClass: 'bed-card'
   },
   { 
-    value: 24, 
+    value: 0, 
     label: '员工总数', 
     icon: 'Avatar', 
     color: '#F56C6C',
@@ -227,39 +224,15 @@ const statsData = ref([
   }
 ])
 
-// 最新动态
-const newsList = ref([
-  {
-    title: '新老人入住',
-    content: '张三老人于今日成功办理入住手续，已分配至301房间',
-    timestamp: '2023/4/17 20:46',
-    type: 'success',
-    icon: 'Check'
-  },
-  {
-    title: '健康检查提醒',
-    content: '提醒护理员明天为李四老人进行每周例行健康检查',
-    timestamp: '2023/4/18 15:30',
-    type: 'warning',
-    icon: 'Bell'
-  },
-  {
-    title: '房间维护完成',
-    content: '201房间空调维护工作已完成，老人已返回房间',
-    timestamp: '2023/4/18 20:46',
-    type: 'info',
-    icon: 'Document'
-  },
-  {
-    title: '家属探访',
-    content: '王五老人的家属将于明天下午来院探访',
-    timestamp: '2023/4/19 10:15',
-    type: 'primary',
-    icon: 'Calendar'
-  }
+// 额外统计数据
+const additionalStats = ref([
+  { value: 0, label: '今日活动' },
+  { value: 0, label: '家属探访' },
+  { value: 0, label: '待处理事项' }
 ])
 
-
+// 最新动态
+const newsList = ref([])
 
 // 快速操作
 const quickActions = ref([
@@ -269,10 +242,8 @@ const quickActions = ref([
   { label: '员工管理', icon: 'Avatar', type: 'info', route: '/users', color: '#909399' }
 ])
 
-
-
 // 入住率
-const occupancyRate = ref(85.3)
+const occupancyRate = ref(0)
 
 // 入住率颜色
 const occupancyColor = ref([
@@ -280,6 +251,22 @@ const occupancyColor = ref([
   { color: '#E6A23C', percentage: 85 },
   { color: '#F56C6C', percentage: 100 }
 ])
+
+// 护理等级分布数据
+const careLevelData = ref([])
+
+// 房间入住情况数据
+const roomOccupancyData = ref([])
+
+// 加载状态
+const loading = ref(true)
+
+// 图表实例
+const careLevelChart = ref(null)
+const roomOccupancyChart = ref(null)
+
+// 窗口大小变化处理函数
+const handleResize = ref(null)
 
 // 格式化当前日期
 const formatDate = () => {
@@ -303,137 +290,228 @@ const viewMore = (type) => {
   console.log('View more:', type)
 }
 
-// 图表实例
-let careLevelChart = null
-let roomOccupancyChart = null
+// 获取仪表盘数据
+const fetchDashboardData = async () => {
+  try {
+    loading.value = true
+    const response = await api.dashboard.getDashboardData()
+    const data = response.data.data // 假设后端返回格式为 { code: 200, message: 'success', data: {...} }
+    
+    // 更新用户信息
+    username.value = data.username || '管理员'
+    currentDate.value = data.currentDate || formatDate()
+    notificationCount.value = data.notificationCount || 0
+    
+    // 更新统计数据
+    if (data.stats) {
+      statsData.value = [
+        { 
+          value: data.stats.totalElders || 0, 
+          label: '在院老人', 
+          icon: 'User', 
+          color: '#67C23A',
+          cardClass: 'elder-card'
+        },
+        { 
+          value: data.stats.totalRooms || 0, 
+          label: '房间总数', 
+          icon: 'OfficeBuilding', 
+          color: '#409EFF',
+          cardClass: 'room-card'
+        },
+        { 
+          value: data.stats.vacantBeds || 0, 
+          label: '空闲床位', 
+          icon: 'House', 
+          color: '#E6A23C',
+          cardClass: 'bed-card'
+        },
+        { 
+          value: data.stats.totalStaff || 0, 
+          label: '员工总数', 
+          icon: 'Avatar', 
+          color: '#F56C6C',
+          cardClass: 'staff-card'
+        }
+      ]
+    }
+    
+    // 更新额外统计数据
+    if (data.additionalStats) {
+      additionalStats.value = data.additionalStats.map(stat => ({
+        value: stat.value,
+        label: stat.label
+      }))
+    }
+    
+    // 更新最新动态
+    newsList.value = data.newsList || []
+    
+    // 更新入住率
+    occupancyRate.value = data.occupancyRate || 0
+    
+    // 更新图表数据
+    careLevelData.value = data.careLevelDistribution || []
+    roomOccupancyData.value = data.roomOccupancy || []
+    
+  } catch (error) {
+    console.error('获取仪表盘数据失败:', error)
+    // 如果获取数据失败，仍显示默认数据
+  } finally {
+    loading.value = false
+  }
+}
 
 onMounted(async () => {
   formatDate()
+  await fetchDashboardData() // 获取数据
   
-  // 动态导入ECharts
-  const echarts = await import('echarts')
-  
-  // 初始化护理等级分布图表
-  if (document.getElementById('careLevelChart')) {
-    careLevelChart = echarts.init(document.getElementById('careLevelChart'))
-    const careLevelOption = {
-      tooltip: {
-        trigger: 'item',
-        formatter: '{a} <br/>{b}: {c}人 ({d}%)'
-      },
-      legend: {
-        orient: 'horizontal',
-        left: 'center',
-        bottom: '10',
-        textStyle: {
-          fontSize: 12
-        }
-      },
-      series: [
-        {
-          name: '护理等级',
-          type: 'pie',
-          radius: ['40%', '70%'],
-          avoidLabelOverlap: false,
-          itemStyle: {
-            borderRadius: 8,
-            borderColor: '#fff',
-            borderWidth: 2
-          },
-          label: {
-            show: true,
-            formatter: '{b}: {c}人'
-          },
-          emphasis: {
+  try {
+    // 延迟一点以确保DOM元素完全渲染
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
+    // 动态导入ECharts
+    const echarts = await import('echarts')
+    
+    // 初始化护理等级分布图表
+    const careLevelElement = document.getElementById('careLevelChart')
+    if (careLevelElement && careLevelData.value.length > 0) {
+      careLevelChart.value = echarts.init(careLevelElement)
+      const careLevelOption = {
+        tooltip: {
+          trigger: 'item',
+          formatter: '{a} <br/>{b}: {c}人 ({d}%)'
+        },
+        legend: {
+          orient: 'horizontal',
+          left: 'center',
+          bottom: '10',
+          textStyle: {
+            fontSize: 12
+          }
+        },
+        series: [
+          {
+            name: '护理等级',
+            type: 'pie',
+            radius: ['40%', '70%'],
+            avoidLabelOverlap: false,
+            itemStyle: {
+              borderRadius: 8,
+              borderColor: '#fff',
+              borderWidth: 2
+            },
             label: {
               show: true,
-              fontSize: '14',
-              fontWeight: 'bold'
-            }
-          },
-          labelLine: {
-            show: true
-          },
-          data: [
-            { value: 35, name: '一级护理', itemStyle: { color: '#F56C6C' } },
-            { value: 58, name: '二级护理', itemStyle: { color: '#E6A23C' } },
-            { value: 35, name: '三级护理', itemStyle: { color: '#67C23A' } }
-          ]
-        }
-      ]
+              formatter: '{b}: {c}人'
+            },
+            emphasis: {
+              label: {
+                show: true,
+                fontSize: '14',
+                fontWeight: 'bold'
+              }
+            },
+            labelLine: {
+              show: true
+            },
+            data: careLevelData.value.map(item => ({
+              value: item.value,
+              name: item.name,
+              itemStyle: { color: item.color }
+            }))
+          }
+        ]
+      }
+      careLevelChart.value.setOption(careLevelOption)
     }
-    careLevelChart.setOption(careLevelOption)
-  }
-  
-  // 初始化房间入住情况图表
-  if (document.getElementById('roomOccupancyChart')) {
-    roomOccupancyChart = echarts.init(document.getElementById('roomOccupancyChart'))
-    const roomOccupancyOption = {
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: {
-          type: 'shadow'
-        }
-      },
-      legend: {
-        data: ['已入住', '空闲'],
-        top: '10'
-      },
-      grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '10%',
-        top: '15%',
-        containLabel: true
-      },
-      xAxis: {
-        type: 'value',
-        boundaryGap: [0, 0.01]
-      },
-      yAxis: {
-        type: 'category',
-        data: ['单人间', '双人间', '多人间']
-      },
-      series: [
-        {
-          name: '已入住',
-          type: 'bar',
-          stack: 'total',
-          emphasis: {
-            focus: 'series'
-          },
-          data: [8, 15, 21],
-          itemStyle: { color: '#409EFF' }
+    
+    // 初始化房间入住情况图表
+    const roomOccupancyElement = document.getElementById('roomOccupancyChart')
+    if (roomOccupancyElement && roomOccupancyData.value.length > 0) {
+      // Make sure we have enough data for the categories
+      const categories = ['单人间', '双人间', '多人间'] // Fixed categories
+      const occupiedData = roomOccupancyData.value.slice(0, 3).map(item => item.value)
+      // Create vacant data - this needs to be calculated properly based on available vs occupied
+      // For now, we'll use mock data
+      const vacantData = occupiedData.map(() => Math.floor(Math.random() * 5 + 1)) // Mock vacant data
+      
+      roomOccupancyChart.value = echarts.init(roomOccupancyElement)
+      const roomOccupancyOption = {
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'shadow'
+          }
         },
-        {
-          name: '空闲',
-          type: 'bar',
-          stack: 'total',
-          emphasis: {
-            focus: 'series'
+        legend: {
+          data: ['已入住', '空闲'],
+          top: '10'
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '10%',
+          top: '15%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'value'
+        },
+        yAxis: {
+          type: 'category',
+          data: categories
+        },
+        series: [
+          {
+            name: '已入住',
+            type: 'bar',
+            stack: 'total',
+            emphasis: {
+              focus: 'series'
+            },
+            data: occupiedData,
+            itemStyle: { color: '#409EFF' }
           },
-          data: [2, 5, 9],
-          itemStyle: { color: '#909399' }
-        }
-      ]
+          {
+            name: '空闲',
+            type: 'bar',
+            stack: 'total',
+            emphasis: {
+              focus: 'series'
+            },
+            data: vacantData,
+            itemStyle: { color: '#909399' }
+          }
+        ]
+      }
+      roomOccupancyChart.value.setOption(roomOccupancyOption)
     }
-    roomOccupancyChart.setOption(roomOccupancyOption)
+    
+    // 处理窗口大小变化
+    handleResize.value = () => {
+      if (careLevelChart.value) careLevelChart.value.resize()
+      if (roomOccupancyChart.value) roomOccupancyChart.value.resize()
+    }
+    
+    window.addEventListener('resize', handleResize.value)
+    
+  } catch (error) {
+    console.error('ECharts 初始化失败:', error)
   }
-  
-  // 处理窗口大小变化
-  const handleResize = () => {
-    if (careLevelChart) careLevelChart.resize()
-    if (roomOccupancyChart) roomOccupancyChart.resize()
+})
+
+onUnmounted(() => {
+  // 清理图表实例
+  if (handleResize.value) {
+    window.removeEventListener('resize', handleResize.value)
   }
-  
-  window.addEventListener('resize', handleResize)
-  
-  // 组件卸载时清理
-  onUnmounted(() => {
-    window.removeEventListener('resize', handleResize)
-    if (careLevelChart) careLevelChart.dispose()
-    if (roomOccupancyChart) roomOccupancyChart.dispose()
-  })
+  if (careLevelChart.value) {
+    careLevelChart.value.dispose()
+  }
+  if (roomOccupancyChart.value) {
+    roomOccupancyChart.value.dispose()
+  }
 })
 </script>
 

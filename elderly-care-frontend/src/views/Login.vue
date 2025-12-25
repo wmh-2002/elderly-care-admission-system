@@ -105,6 +105,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User } from '@element-plus/icons-vue'
+import api from '@/api'
 
 const router = useRouter()
 
@@ -132,28 +133,61 @@ const loginRules = {
 const loginFormRef = ref()
 
 // 处理登录
-const handleLogin = () => {
-  loginFormRef.value.validate((valid) => {
+const handleLogin = async () => {
+  loginFormRef.value.validate(async (valid) => {
     if (valid) {
       loading.value = true
-      
-      // 模拟 API 调用
-      setTimeout(() => {
-        loading.value = false
-        // 模拟登录成功
-        ElMessage.success('登录成功')
-        
-        // 存储用户信息到本地存储（实际应用中应存储token等）
-        localStorage.setItem('isLogin', 'true')
-        localStorage.setItem('userInfo', JSON.stringify({
+      try {
+        // 调用后端登录API
+        const response = await api.auth.login({
           username: loginForm.username,
-          realName: '管理员',
-          role: 'admin'
-        }))
-        
-        // 跳转到首页
-        router.push('/dashboard')
-      }, 1000)
+          password: loginForm.password
+        })
+
+        // 检查响应状态
+        if (response.data.code === 200) {
+          const loginData = response.data.data // This is the LoginData object from backend
+          
+          // 存储用户信息和JWT token
+          localStorage.setItem('isLogin', 'true')
+          localStorage.setItem('token', loginData.token) // 存储JWT token
+          
+          // 存储用户信息
+          localStorage.setItem('userInfo', JSON.stringify({
+            username: loginData.username || loginForm.username,
+            realName: loginData.realName || '管理员',
+            role: loginData.roleName || 'admin',
+            userId: loginData.id
+          }))
+          
+          ElMessage.success('登录成功')
+          
+          // 跳转到首页
+          router.push('/dashboard')
+        } else {
+          ElMessage.error(response.data.message || '登录失败')
+        }
+      } catch (error) {
+        console.error('登录失败:', error)
+        let errorMessage = '登录失败'
+        if (error.response) {
+          // 服务器返回了错误响应
+          if (error.response.data && error.response.data.message) {
+            errorMessage = error.response.data.message
+          } else {
+            errorMessage = `登录失败: ${error.response.status}`
+          }
+        } else if (error.request) {
+          // 请求已发出但没有收到响应
+          errorMessage = '网络错误，请检查网络连接'
+        } else {
+          // 其他错误
+          errorMessage = error.message || '登录失败'
+        }
+        ElMessage.error(errorMessage)
+      } finally {
+        loading.value = false
+      }
     } else {
       console.log('Validation failed!')
       ElMessage.error('请填写正确的登录信息')

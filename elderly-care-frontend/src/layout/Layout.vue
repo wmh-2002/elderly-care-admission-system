@@ -29,10 +29,6 @@
             <el-icon><User /></el-icon>
             <span v-show="!isCollapse">老人档案</span>
           </el-menu-item>
-          <el-menu-item index="/beds">
-            <el-icon><UserFilled /></el-icon>
-            <span v-show="!isCollapse">床位管理</span>
-          </el-menu-item>
         </el-sub-menu>
         
         <el-sub-menu index="nursing">
@@ -69,6 +65,10 @@
           <el-menu-item index="/rooms">
             <el-icon><OfficeBuilding /></el-icon>
             <span v-show="!isCollapse">房间管理</span>
+          </el-menu-item>
+          <el-menu-item index="/beds">
+            <el-icon><UserFilled /></el-icon>
+            <span v-show="!isCollapse">床位管理</span>
           </el-menu-item>
         </el-sub-menu>
         

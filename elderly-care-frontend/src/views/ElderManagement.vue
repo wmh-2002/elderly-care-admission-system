@@ -65,7 +65,11 @@
             {{ row.gender === 'M' ? '男' : row.gender === 'F' ? '女' : '-' }}
           </template>
         </el-table-column>
-        <el-table-column prop="age" label="年龄" min-width="80" />
+        <el-table-column prop="age" label="年龄" min-width="80">
+          <template #default="{ row }">
+            {{ calculateAge(row.birthDate) }}
+          </template>
+        </el-table-column>
         <el-table-column prop="phone" label="联系电话" min-width="130" />
         <el-table-column prop="roomNo" label="房间号" min-width="100" />
         <el-table-column prop="bedNo" label="床号" min-width="100" />
@@ -163,11 +167,56 @@
         
         <el-row :gutter="20">
           <el-col :span="12">
+            <el-form-item label="房间" prop="roomId">
+              <el-select 
+                v-model="elderForm.roomId" 
+                placeholder="请选择房间" 
+                style="width: 100%"
+                @change="handleRoomChange"
+                :loading="roomLoading"
+              >
+                <el-option
+                  v-for="room in roomList"
+                  :key="room.id"
+                  :label="room.roomNo"
+                  :value="room.id"
+                >
+                  <span>{{ room.roomNo }}</span>
+                  <span style="float: right; color: #8492a6; font-size: 13px">{{ room.roomType }}</span>
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="床位" prop="bedId">
+              <el-select 
+                v-model="elderForm.bedId" 
+                placeholder="请选择床位" 
+                style="width: 100%"
+                :loading="bedLoading"
+                :disabled="!elderForm.roomId"
+              >
+                <el-option
+                  v-for="bed in availableBedList"
+                  :key="bed.id"
+                  :label="bed.bedNo"
+                  :value="bed.id"
+                >
+                  <span>{{ bed.bedNo }}</span>
+                  <span style="float: right; color: #8492a6; font-size: 13px">{{ bed.status === 0 ? '空闲' : '已占用' }}</span>
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        
+        <el-row :gutter="20">
+          <el-col :span="12">
             <el-form-item label="护理等级" prop="careLevel">
               <el-select v-model="elderForm.careLevel" placeholder="请选择护理等级" style="width: 100%">
-                <el-option label="一级护理" value="1级护理" />
-                <el-option label="二级护理" value="2级护理" />
-                <el-option label="三级护理" value="3级护理" />
+                <el-option label="一级护理" value="L1" />
+                <el-option label="二级护理" value="L2" />
+                <el-option label="三级护理" value="L3" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -198,8 +247,9 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
+import api from '@/api'
 import { 
   Search, 
   Refresh, 
@@ -236,6 +286,16 @@ const dialogTitle = ref('')
 const elderForm = ref({})
 const elderFormRef = ref()
 
+// 加载状态
+const loading = ref(false)
+
+// 房间和床位相关
+const roomList = ref([])
+const bedList = ref([])
+const availableBedList = ref([])
+const roomLoading = ref(false)
+const bedLoading = ref(false)
+
 // 表单验证规则
 const elderRules = {
   elderNo: [
@@ -258,42 +318,81 @@ const elderRules = {
   ]
 }
 
-// 模拟数据加载
-const loadElders = () => {
-  // 模拟从 API 获取数据
-  const mockData = []
-  for (let i = 1; i <= 50; i++) {
-    mockData.push({
-      id: i,
-      elderNo: `ELDER${String(i).padStart(4, '0')}`,
-      name: `老人${i}`,
-      gender: Math.random() > 0.5 ? 'M' : 'F',
-      age: 70 + Math.floor(Math.random() * 30),
-      phone: `138${Math.floor(10000000 + Math.random() * 90000000)}`,
-      roomNo: `${Math.floor(i/5) + 1}${String(i%5 + 1).padStart(2, '0')}`,
-      bedNo: String(i%8 + 1),
-      careLevel: ['1级护理', '2级护理', '3级护理'][Math.floor(Math.random() * 3)],
-      status: Math.random() > 0.2 ? 1 : 0,
-      remarks: `备注信息 ${i}`
-    })
+// 加载老人数据
+const loadElders = async () => {
+  try {
+    loading.value = true
+    
+    // 构建查询参数
+    const params = {
+      page: currentPage.value,
+      size: pageSize.value
+    }
+    
+    // 添加筛选条件
+    if (searchForm.name) params.name = searchForm.name
+    if (searchForm.status) params.status = searchForm.status
+    if (searchForm.careLevel) params.careLevel = searchForm.careLevel
+
+    const response = await api.elder.getElderList(params)
+    
+    if (response.data.code === 200) {
+      const data = response.data.data
+      // 计算每位老人的年龄并添加到数据中
+      elderList.value = (data.content || []).map(elder => ({
+        ...elder,
+        age: calculateAge(elder.birthDate)
+      }))
+      total.value = data.total || 0
+    } else {
+      ElMessage.error(response.data.message || '获取老人数据失败')
+    }
+  } catch (error) {
+    console.error('获取老人数据失败:', error)
+    let errorMessage = '获取老人数据失败'
+    if (error.response) {
+      errorMessage = error.response.data?.message || `错误: ${error.response.status}`
+    } else if (error.request) {
+      errorMessage = '网络错误，请检查网络连接'
+    } else {
+      errorMessage = error.message || '未知错误'
+    }
+    ElMessage.error(errorMessage)
+  } finally {
+    loading.value = false
   }
-  elderList.value = mockData
-  total.value = mockData.length
 }
 
 // 格式化护理等级显示
 const formatCareLevel = (level) => {
   switch(level) {
-    case '1级护理': return '一级护理'
-    case '2级护理': return '二级护理'
-    case '3级护理': return '三级护理'
+    case 'L1': return '一级护理'
+    case 'L2': return '二级护理'
+    case 'L3': return '三级护理'
     default: return level
   }
 }
 
+// 根据出生日期计算年龄
+const calculateAge = (birthDate) => {
+  if (!birthDate) return '-'
+  
+  const birth = new Date(birthDate)
+  const today = new Date()
+  let age = today.getFullYear() - birth.getFullYear()
+  const monthDiff = today.getMonth() - birth.getMonth()
+  
+  // 如果还没到生日，年龄减1
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--
+  }
+  
+  return age
+}
+
 // 搜索
 const onSearch = () => {
-  console.log('Search:', searchForm)
+  currentPage.value = 1
   loadElders()
 }
 
@@ -302,6 +401,7 @@ const onReset = () => {
   searchForm.name = ''
   searchForm.status = ''
   searchForm.careLevel = ''
+  currentPage.value = 1
   loadElders()
 }
 
@@ -310,30 +410,70 @@ const addElder = () => {
   dialogTitle.value = '新增老人'
   elderForm.value = {
     status: 1,
-    careLevel: '1级护理'
+    careLevel: 'L1' // 使用后端标准的护理等级格式
   }
   dialogVisible.value = true
 }
 
 // 编辑老人
-const editElder = (row) => {
-  dialogTitle.value = '编辑老人'
-  elderForm.value = { ...row }
-  dialogVisible.value = true
+const editElder = async (row) => {
+  try {
+    // 获取完整的老人信息用于编辑
+    const response = await api.elder.getElderById(row.id)
+    if (response.data.code === 200) {
+      dialogTitle.value = '编辑老人'
+      elderForm.value = { ...response.data.data }
+      dialogVisible.value = true
+    } else {
+      ElMessage.error(response.data.message || '获取老人信息失败')
+    }
+  } catch (error) {
+    console.error('获取老人详细信息失败:', error)
+    ElMessage.error('获取老人详细信息失败')
+  }
 }
 
 // 查看详情
 const viewDetails = (row) => {
-  console.log('View details for:', row)
   // 跳转到老人详情页面
   router.push(`/elders/${row.id}`)
 }
 
 // 删除老人
-const deleteElder = (id) => {
-  console.log('Delete elder:', id)
-  // 实际应用中会调用API删除
-  loadElders()
+const deleteElder = async (id) => {
+  try {
+    await ElMessageBox.confirm(
+      '此操作将永久删除该老人档案, 是否继续?',
+      '警告',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+    
+    const response = await api.elder.deleteElder(id)
+    if (response.data.code === 200) {
+      ElMessage.success('删除成功')
+      // 重新加载数据
+      loadElders()
+    } else {
+      ElMessage.error(response.data.message || '删除失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') { // 用户取消操作
+      console.error('删除老人失败:', error)
+      let errorMessage = '删除失败'
+      if (error.response) {
+        errorMessage = error.response.data?.message || `错误: ${error.response.status}`
+      } else if (error.request) {
+        errorMessage = '网络错误，请检查网络连接'
+      } else {
+        errorMessage = error.message || '未知错误'
+      }
+      ElMessage.error(errorMessage)
+    }
+  }
 }
 
 // 批量删除
@@ -344,6 +484,7 @@ const handleSelectionChange = (val) => {
 // 分页处理
 const handleSizeChange = (size) => {
   pageSize.value = size
+  currentPage.value = 1
   loadElders()
 }
 
@@ -352,21 +493,124 @@ const handleCurrentChange = (page) => {
   loadElders()
 }
 
-// 提交表单
-const submitForm = () => {
-  elderFormRef.value.validate((valid) => {
+// 提交表单（新增或编辑）
+const submitForm = async () => {
+  elderFormRef.value.validate(async (valid) => {
     if (valid) {
-      console.log('Submit form:', elderForm.value)
-      // 实际应用中会调用API提交数据
-      dialogVisible.value = false
-      loadElders()
+      try {
+        // 创建提交数据副本，确保bedId字段正确映射
+        const submitData = { ...elderForm.value }
+        
+        let response
+        if (elderForm.value.id) {
+          // 编辑现有老人
+          response = await api.elder.updateElder(elderForm.value.id, submitData)
+        } else {
+          // 创建新老人
+          response = await api.elder.createElder(submitData)
+        }
+        
+        if (response.data.code === 200) {
+          ElMessage.success(elderForm.value.id ? '更新成功' : '新增成功')
+          dialogVisible.value = false
+          // 重新加载数据
+          loadElders()
+        } else {
+          ElMessage.error(response.data.message || (elderForm.value.id ? '更新失败' : '新增失败'))
+        }
+      } catch (error) {
+        console.error(elderForm.value.id ? '更新老人失败' : '新增老人失败', error)
+        let errorMessage = elderForm.value.id ? '更新失败' : '新增失败'
+        if (error.response) {
+          errorMessage = error.response.data?.message || `错误: ${error.response.status}`
+        } else if (error.request) {
+          errorMessage = '网络错误，请检查网络连接'
+        } else {
+          errorMessage = error.message || '未知错误'
+        }
+        ElMessage.error(errorMessage)
+      }
     } else {
       console.log('Validation failed!')
     }
   })
 }
 
-// 导出表格数据
+// 加载房间列表
+const loadRooms = async () => {
+  try {
+    roomLoading.value = true
+    const response = await api.room.getRoomList({
+      page: 1,
+      size: 100 // 获取所有房间
+    })
+    
+    if (response.data.code === 200) {
+      roomList.value = response.data.data.content || []
+    } else {
+      ElMessage.error(response.data.message || '获取房间列表失败')
+    }
+  } catch (error) {
+    console.error('获取房间列表失败:', error)
+    let errorMessage = '获取房间列表失败'
+    if (error.response) {
+      errorMessage = error.response.data?.message || `错误: ${error.response.status}`
+    } else if (error.request) {
+      errorMessage = '网络错误，请检查网络连接'
+    } else {
+      errorMessage = error.message || '未知错误'
+    }
+    ElMessage.error(errorMessage)
+  } finally {
+    roomLoading.value = false
+  }
+}
+
+// 根据房间ID加载可用床位
+const loadAvailableBedsByRoom = async (roomId) => {
+  if (!roomId) {
+    availableBedList.value = []
+    return
+  }
+  
+  try {
+    bedLoading.value = true
+    const response = await api.room.getAvailableBedsByRoomId(roomId)
+    
+    if (response.data.code === 200) {
+      availableBedList.value = response.data.data || [] // The response is a list directly, not paginated
+
+    } else {
+      ElMessage.error(response.data.message || '获取床位列表失败')
+    }
+  } catch (error) {
+    console.error('获取床位列表失败:', error)
+    let errorMessage = '获取床位列表失败'
+    if (error.response) {
+      errorMessage = error.response.data?.message || `错误: ${error.response.status}`
+    } else if (error.request) {
+      errorMessage = '网络错误，请检查网络连接'
+    } else {
+      errorMessage = error.message || '未知错误'
+    }
+    ElMessage.error(errorMessage)
+  } finally {
+    bedLoading.value = false
+  }
+}
+
+// 处理房间选择变化
+const handleRoomChange = (roomId) => {
+  // 清空床位选择
+  elderForm.value.bedId = undefined
+  if (roomId) {
+    loadAvailableBedsByRoom(roomId)
+  } else {
+    availableBedList.value = []
+  }
+}
+
+// 切换视图模式
 const exportTable = () => {
   // 这里可以集成导出功能，如使用xlsx库导出Excel
   console.log('Exporting table data...')
@@ -385,8 +629,14 @@ const toggleView = () => {
   }
 }
 
-onMounted(() => {
-  loadElders()
+// 初始化房间列表
+const initRoomList = async () => {
+  await loadRooms()
+}
+
+onMounted(async () => {
+  await loadElders()
+  await initRoomList()
 })
 </script>
 

@@ -79,4 +79,7 @@ const routes = [
   }
 ]
 
+// Make sure to export the routes properly
+export { routes }
+// Also export as default for backwards compatibility
 export default routes
