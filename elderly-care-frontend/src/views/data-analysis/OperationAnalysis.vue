@@ -640,7 +640,7 @@ defineExpose({ cleanup })
 
 <style scoped>
 .operation-analysis {
-  padding: 20px;
+  padding: 0px;
 }
 
 .page-header {

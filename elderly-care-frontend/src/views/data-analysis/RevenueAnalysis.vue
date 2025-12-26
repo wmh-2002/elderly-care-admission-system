@@ -616,7 +616,7 @@ defineExpose({ cleanup })
 
 <style scoped>
 .revenue-analysis {
-  padding: 20px;
+  padding: 0px;
 }
 
 .page-header {

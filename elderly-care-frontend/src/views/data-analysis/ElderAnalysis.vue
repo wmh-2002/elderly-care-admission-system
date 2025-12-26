@@ -607,7 +607,7 @@ defineExpose({ cleanup })
 
 <style scoped>
 .elder-analysis {
-  padding: 20px;
+  padding: 0px;
 }
 
 .page-header {
@@ -710,9 +710,6 @@ defineExpose({ cleanup })
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .elder-analysis {
-    padding: 10px;
-  }
 
   .metric-content {
     flex-direction: column;
