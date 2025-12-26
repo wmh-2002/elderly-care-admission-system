@@ -770,10 +770,6 @@ defineExpose({ cleanup })
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .revenue-analysis {
-    padding: 10px;
-  }
-
   .metric-content {
     flex-direction: column;
     text-align: center;
