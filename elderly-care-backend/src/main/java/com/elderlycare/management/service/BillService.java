@@ -3,11 +3,13 @@ package com.elderlycare.management.service;
 import com.elderlycare.management.dto.*;
 import com.elderlycare.management.entity.Bill;
 import com.elderlycare.management.entity.BillDetail;
+import com.elderlycare.management.entity.CareLevel;
 import com.elderlycare.management.entity.Elder;
 import com.elderlycare.management.entity.FeeItem;
 import com.elderlycare.management.exception.ResourceNotFoundException;
 import com.elderlycare.management.repository.BillDetailRepository;
 import com.elderlycare.management.repository.BillRepository;
+import com.elderlycare.management.repository.CareLevelRepository;
 import com.elderlycare.management.repository.ElderRepository;
 import com.elderlycare.management.repository.FeeItemRepository;
 import org.springframework.data.domain.Page;
@@ -30,13 +32,16 @@ public class BillService {
     private final BillDetailRepository billDetailRepository;
     private final ElderRepository elderRepository;
     private final FeeItemRepository feeItemRepository;
+    private final CareLevelRepository careLevelRepository;
 
     public BillService(BillRepository billRepository, BillDetailRepository billDetailRepository,
-                       ElderRepository elderRepository, FeeItemRepository feeItemRepository) {
+                       ElderRepository elderRepository, FeeItemRepository feeItemRepository,
+                       CareLevelRepository careLevelRepository) {
         this.billRepository = billRepository;
         this.billDetailRepository = billDetailRepository;
         this.elderRepository = elderRepository;
         this.feeItemRepository = feeItemRepository;
+        this.careLevelRepository = careLevelRepository;
     }
 
     /**
@@ -131,6 +136,7 @@ public class BillService {
         bill.setBillMonth(request.getBillMonth().trim());
         bill.setTotalAmount(request.getTotalAmount());
         bill.setPaidAmount(request.getPaidAmount() != null ? request.getPaidAmount() : BigDecimal.ZERO);
+        bill.setPaymentMethod(request.getPaymentMethod() != null ? request.getPaymentMethod() : "现金");
         bill.setStatus(request.getStatus() != null ? request.getStatus() : 0);
 
         Bill savedBill = billRepository.save(bill);
@@ -187,6 +193,9 @@ public class BillService {
             if (bill.getPaidAmount().compareTo(bill.getTotalAmount()) >= 0) {
                 bill.setStatus(1);
             }
+        }
+        if (request.getPaymentMethod() != null) {
+            bill.setPaymentMethod(request.getPaymentMethod());
         }
         if (request.getStatus() != null) {
             bill.setStatus(request.getStatus());
@@ -263,6 +272,117 @@ public class BillService {
 
         billRepository.save(bill);
         return getBillById(id);
+    }
+
+    /**
+     * 账单结算 - 根据老人信息自动计算费用并生成账单
+     */
+    @Transactional
+    public BillResponse settleBill(BillSettlementRequest request) {
+        // 验证老人是否存在
+        Elder elder = elderRepository.findById(request.getElderId())
+                .orElseThrow(() -> new ResourceNotFoundException("老人不存在，ID: " + request.getElderId()));
+
+        // 检查该老人该月份是否已有账单
+        if (billRepository.existsByElderIdAndBillMonth(request.getElderId(), request.getBillMonth())) {
+            throw new RuntimeException("该老人该月份账单已存在: " + request.getBillMonth());
+        }
+
+        // 计算费用
+        BillCalculationResult calculationResult = calculateBillAmount(elder, request.getBillMonth());
+
+        // 创建账单
+        Bill bill = new Bill();
+        bill.setElderId(request.getElderId());
+        bill.setBillMonth(request.getBillMonth().trim());
+        bill.setTotalAmount(calculationResult.getTotalAmount());
+        bill.setPaidAmount(BigDecimal.ZERO);
+        bill.setPaymentMethod(request.getPaymentMethod() != null ? request.getPaymentMethod() : "现金");
+        bill.setStatus(0); // 默认未缴清
+
+        Bill savedBill = billRepository.save(bill);
+
+        // 创建账单明细
+        createBillDetails(savedBill, calculationResult, request.getAdditionalFees());
+
+        return getBillById(savedBill.getId());
+    }
+
+    /**
+     * 计算账单金额
+     */
+    private BillCalculationResult calculateBillAmount(Elder elder, String billMonth) {
+        BillCalculationResult result = new BillCalculationResult();
+
+        // 解析月份，计算该月的天数
+        String[] parts = billMonth.split("-");
+        int year = Integer.parseInt(parts[0]);
+        int month = Integer.parseInt(parts[1]);
+
+        java.time.YearMonth yearMonth = java.time.YearMonth.of(year, month);
+        int daysInMonth = yearMonth.lengthOfMonth();
+
+        // 获取护理等级信息
+        CareLevel careLevel = careLevelRepository.findByLevelCode(elder.getCareLevel())
+                .orElseThrow(() -> new ResourceNotFoundException("护理等级不存在: " + elder.getCareLevel()));
+
+        // 计算护理费用（日单价 × 当月天数）
+        BigDecimal careFee = careLevel.getDailyPrice().multiply(BigDecimal.valueOf(daysInMonth));
+
+        // 添加护理费用明细
+        result.addDetail("CARE_" + elder.getCareLevel(), careLevel.getLevelName() + "护理费",
+                       daysInMonth, careLevel.getDailyPrice(), careFee);
+
+        return result;
+    }
+
+    /**
+     * 创建账单明细
+     */
+    private void createBillDetails(Bill bill, BillCalculationResult calculationResult,
+                                  List<BillDetailCreateRequest> additionalFees) {
+        // 添加计算出的费用明细
+        for (BillCalculationResult.BillDetailItem item : calculationResult.getDetails()) {
+            BillDetail detail = new BillDetail();
+            detail.setBillId(bill.getId());
+            detail.setItemCode(item.getItemCode());
+            detail.setQuantity(item.getQuantity());
+            detail.setUnitPrice(item.getUnitPrice());
+            detail.setAmount(item.getAmount());
+            billDetailRepository.save(detail);
+        }
+
+        // 添加额外的费用项
+        if (additionalFees != null && !additionalFees.isEmpty()) {
+            BigDecimal additionalTotal = BigDecimal.ZERO;
+
+            for (BillDetailCreateRequest feeRequest : additionalFees) {
+                // 验证费用项目是否存在
+                FeeItem feeItem = feeItemRepository.findById(feeRequest.getItemCode())
+                        .orElseThrow(() -> new ResourceNotFoundException("费用项目不存在: " + feeRequest.getItemCode()));
+
+                BillDetail detail = new BillDetail();
+                detail.setBillId(bill.getId());
+                detail.setItemCode(feeRequest.getItemCode());
+                detail.setQuantity(feeRequest.getQuantity() != null ? feeRequest.getQuantity() : 1);
+                // 如果未提供单价，使用费用项目的单价
+                detail.setUnitPrice(feeRequest.getUnitPrice() != null ?
+                        feeRequest.getUnitPrice() : feeItem.getUnitPrice());
+                // 计算金额
+                if (feeRequest.getAmount() != null) {
+                    detail.setAmount(feeRequest.getAmount());
+                } else {
+                    detail.setAmount(detail.getUnitPrice().multiply(BigDecimal.valueOf(detail.getQuantity())));
+                }
+
+                billDetailRepository.save(detail);
+                additionalTotal = additionalTotal.add(detail.getAmount());
+            }
+
+            // 更新账单总金额
+            bill.setTotalAmount(bill.getTotalAmount().add(additionalTotal));
+            billRepository.save(bill);
+        }
     }
 }
 

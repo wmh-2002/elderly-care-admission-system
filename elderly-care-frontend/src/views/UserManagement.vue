@@ -160,7 +160,7 @@ import {
   Download,
   Menu
 } from '@element-plus/icons-vue'
-import userAPI from '@/api/user'
+import api from '@/api'
 
 // 搜索表单
 const searchForm = reactive({
@@ -225,7 +225,7 @@ const loadUsers = async () => {
       phone: searchForm.phone || undefined
     }
 
-    const response = await userAPI.getUserList(params)
+    const response = await api.user.getUserList(params)
     if (response.data.code === 200) {
       userList.value = response.data.data.content || []
       total.value = response.data.data.totalElements || 0
@@ -310,7 +310,7 @@ const deleteUser = async (id) => {
       type: 'warning'
     })
 
-    const response = await userAPI.deleteUser(id)
+    const response = await api.user.deleteUser(id)
     if (response.data.code === 200) {
       ElMessage.success('删除成功')
       loadUsers()
@@ -349,10 +349,10 @@ const submitForm = async () => {
         let response
         if (userForm.value.id) {
           // 更新用户
-          response = await userAPI.updateUser(userForm.value.id, userForm.value)
+          response = await api.user.updateUser(userForm.value.id, userForm.value)
         } else {
           // 创建用户
-          response = await userAPI.createUser(userForm.value)
+          response = await api.user.createUser(userForm.value)
         }
 
         if (response.data.code === 200) {

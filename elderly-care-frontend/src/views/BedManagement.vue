@@ -167,8 +167,7 @@ import {
   Menu,
   ArrowDown
 } from '@element-plus/icons-vue'
-import bedAPI from '@/api/bed'
-import roomAPI from '@/api/room'
+import api from '@/api'
 
 // 搜索表单
 const searchForm = reactive({
@@ -219,7 +218,7 @@ const loadBeds = async () => {
       status: searchForm.status !== '' ? parseInt(searchForm.status) : undefined
     }
 
-    const response = await bedAPI.getBedList(params)
+    const response = await api.bed.getBedList(params)
     if (response.data.code === 200) {
       bedList.value = response.data.data.content || []
       total.value = response.data.data.totalElements || 0
@@ -238,7 +237,7 @@ const loadBeds = async () => {
 // 加载房间选项
 const loadRooms = async () => {
   try {
-    const response = await roomAPI.getRoomList({ page: 1, size: 1000 }) // 获取所有房间作为选项
+    const response = await api.room.getRoomList({ page: 1, size: 1000 }) // 获取所有房间作为选项
     if (response.data.code === 200) {
       roomOptions.value = response.data.data.content || []
     } else {
@@ -324,7 +323,7 @@ const deleteBed = async (id) => {
       type: 'warning'
     })
 
-    const response = await bedAPI.deleteBed(id)
+    const response = await api.bed.deleteBed(id)
     if (response.data.code === 200) {
       ElMessage.success('删除成功')
       loadBeds()
@@ -363,10 +362,10 @@ const submitForm = async () => {
         let response
         if (bedForm.value.id) {
           // 更新床位
-          response = await bedAPI.updateBed(bedForm.value.id, bedForm.value)
+          response = await api.bed.updateBed(bedForm.value.id, bedForm.value)
         } else {
           // 创建床位
-          response = await bedAPI.createBed(bedForm.value)
+          response = await api.bed.createBed(bedForm.value)
         }
 
         if (response.data.code === 200) {
@@ -413,13 +412,13 @@ const updateBedStatus = async (bedId, status) => {
 
     switch (statusNum) {
       case 0:
-        response = await bedAPI.setBedAvailable(bedId)
+        response = await api.bed.setBedAvailable(bedId)
         break
       case 1:
-        response = await bedAPI.setBedOccupied(bedId)
+        response = await api.bed.setBedOccupied(bedId)
         break
       case 2:
-        response = await bedAPI.setBedMaintenance(bedId)
+        response = await api.bed.setBedMaintenance(bedId)
         break
       default:
         ElMessage.error('无效的状态值')
@@ -454,7 +453,7 @@ const batchDeleteBeds = async () => {
     })
 
     // 逐个删除选中的床位
-    const deletePromises = multipleSelection.value.map(bed => bedAPI.deleteBed(bed.id))
+    const deletePromises = multipleSelection.value.map(bed => api.bed.deleteBed(bed.id))
     const results = await Promise.allSettled(deletePromises)
 
     const successCount = results.filter(result => result.status === 'fulfilled' && result.value.data.code === 200).length

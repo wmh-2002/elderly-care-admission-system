@@ -19,7 +19,24 @@
           <el-icon><House /></el-icon>
           <span v-show="!isCollapse">控制面板</span>
         </el-menu-item>
-        
+        <el-sub-menu index="system">
+          <template #title>
+            <el-icon><Setting /></el-icon>
+            <span v-show="!isCollapse">系统管理</span>
+          </template>
+          <el-menu-item index="/users">
+            <el-icon><Avatar /></el-icon>
+            <span v-show="!isCollapse">用户管理</span>
+          </el-menu-item>
+          <el-menu-item index="/roles">
+            <el-icon><UserFilled /></el-icon>
+            <span v-show="!isCollapse">角色管理</span>
+          </el-menu-item>
+          <el-menu-item index="/profile">
+            <el-icon><User /></el-icon>
+            <span v-show="!isCollapse">个人信息</span>
+          </el-menu-item>
+        </el-sub-menu>
         <el-sub-menu index="elderly-care">
           <template #title>
             <el-icon><User /></el-icon>
@@ -71,23 +88,23 @@
             <span v-show="!isCollapse">床位管理</span>
           </el-menu-item>
         </el-sub-menu>
-        
-        <el-sub-menu index="system">
+
+        <el-sub-menu index="data-analysis">
           <template #title>
-            <el-icon><Setting /></el-icon>
-            <span v-show="!isCollapse">系统管理</span>
+            <el-icon><TrendCharts /></el-icon>
+            <span v-show="!isCollapse">数据分析</span>
           </template>
-          <el-menu-item index="/users">
-            <el-icon><Avatar /></el-icon>
-            <span v-show="!isCollapse">用户管理</span>
-          </el-menu-item>
-          <el-menu-item index="/roles">
-            <el-icon><UserFilled /></el-icon>
-            <span v-show="!isCollapse">角色管理</span>
-          </el-menu-item>
-          <el-menu-item index="/profile">
+          <el-menu-item index="/data-analysis/elder">
             <el-icon><User /></el-icon>
-            <span v-show="!isCollapse">个人信息</span>
+            <span v-show="!isCollapse">老人分析</span>
+          </el-menu-item>
+          <el-menu-item index="/data-analysis/revenue">
+            <el-icon><Money /></el-icon>
+            <span v-show="!isCollapse">营收分析</span>
+          </el-menu-item>
+          <el-menu-item index="/data-analysis/operation">
+            <el-icon><Management /></el-icon>
+            <span v-show="!isCollapse">运营分析</span>
           </el-menu-item>
         </el-sub-menu>
       </el-menu>
@@ -154,14 +171,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { 
-  House, 
-  User, 
-  OfficeBuilding, 
-  UserFilled, 
-  Avatar, 
-  Expand, 
-  Fold, 
+import {
+  House,
+  User,
+  OfficeBuilding,
+  UserFilled,
+  Avatar,
+  Expand,
+  Fold,
   ArrowDown,
   Menu,
   List,
@@ -170,7 +187,10 @@ import {
   FolderOpened,
   Document,
   Money,
-  Wallet
+  Wallet,
+  TrendCharts,
+  DataAnalysis,
+  Management
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -194,7 +214,10 @@ const title = computed(() => {
     '/profile': '个人信息',
     '/nursing-categories': '护理分类管理',
     '/nursing-plans': '护理计划管理',
-    '/fee-settlement': '费用结算'
+    '/fee-settlement': '费用结算',
+    '/data-analysis/elder': '老人分析',
+    '/data-analysis/revenue': '营收分析',
+    '/data-analysis/operation': '运营分析'
   }
   
   // 处理动态路由，如 /elders/1

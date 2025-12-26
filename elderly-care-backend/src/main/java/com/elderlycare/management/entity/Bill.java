@@ -27,6 +27,9 @@ public class Bill {
     @Column(name = "paid_amount", precision = 10, scale = 2)
     private BigDecimal paidAmount = BigDecimal.ZERO;
 
+    @Column(name = "payment_method", length = 20)
+    private String paymentMethod; // 支付方式
+
     @Column(nullable = false)
     private Integer status = 0; // 0 未缴清  1 已缴清
 
@@ -84,6 +87,14 @@ public class Bill {
 
     public void setPaidAmount(BigDecimal paidAmount) {
         this.paidAmount = paidAmount;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
     }
 
     public Integer getStatus() {

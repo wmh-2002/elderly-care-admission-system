@@ -169,17 +169,19 @@ CREATE TABLE fee_item (
 -- 1️⃣2️⃣ 月度账单主表：每月为每个老人生成一条总账单
 DROP TABLE IF EXISTS bill;
 CREATE TABLE bill (
-  id           BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '账单主键',
-  elder_id     BIGINT NOT NULL COMMENT '老人→elder',
-  bill_month   VARCHAR(7) NOT NULL COMMENT '账单月份 yyyy-MM',
-  total_amount DECIMAL(10,2) NOT NULL COMMENT '应付金额',
-  paid_amount  DECIMAL(10,2) DEFAULT 0 COMMENT '已付金额',
-  status       TINYINT DEFAULT 0 COMMENT '0 未缴清  1 已缴清',
-  created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  id               BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '账单主键',
+  elder_id         BIGINT NOT NULL COMMENT '老人→elder',
+  bill_month       VARCHAR(7) NOT NULL COMMENT '账单月份 yyyy-MM',
+  total_amount     DECIMAL(10,2) NOT NULL COMMENT '应付金额',
+  paid_amount      DECIMAL(10,2) DEFAULT 0 COMMENT '已付金额',
+  status           TINYINT DEFAULT 0 COMMENT '0 未缴清  1 已缴清',
+  created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  payment_method   ENUM('现金', '微信', '支付宝', '银行卡', '其它') DEFAULT '现金' COMMENT '支付方式',
   UNIQUE KEY uk_elder_month (elder_id, bill_month) COMMENT '每人每月唯一账单',
   CONSTRAINT fk_bill_elder FOREIGN KEY (elder_id) REFERENCES elder(id)
 ) COMMENT='月度账单';
+
 
 -- 1️⃣3️⃣ 账单明细：一条账单对应多条费用明细
 DROP TABLE IF EXISTS bill_detail;

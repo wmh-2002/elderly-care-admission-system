@@ -3,6 +3,7 @@ package com.elderlycare.management.controller;
 import com.elderlycare.management.dto.*;
 import com.elderlycare.management.service.BillService;
 import jakarta.validation.Valid;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -158,6 +159,20 @@ public class BillController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.<BillResponse>error("支付失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 账单结算 - 根据老人信息自动计算费用并生成账单
+     */
+    @PostMapping("/settle")
+    public ResponseEntity<ApiResponse<BillResponse>> settleBill(@Valid @RequestBody BillSettlementRequest request) {
+        try {
+            BillResponse result = billService.settleBill(request);
+            return ResponseEntity.ok(ApiResponse.success(result));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.<BillResponse>error("账单结算失败: " + e.getMessage()));
         }
     }
 }

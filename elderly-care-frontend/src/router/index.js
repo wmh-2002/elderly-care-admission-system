@@ -80,6 +80,28 @@ const routes = [
         name: 'FeeSettlement',
         meta: { requiresAuth: true },
         component: () => import('../views/FeeSettlementManagement.vue')
+      },
+      {
+        path: '/data-analysis/elder',
+        name: 'DataAnalysisElder',
+        meta: { requiresAuth: true },
+        component: () => import('../views/data-analysis/ElderAnalysis.vue')
+      },
+      {
+        path: '/data-analysis/revenue',
+        name: 'DataAnalysisRevenue',
+        meta: { requiresAuth: true },
+        component: () => import('../views/data-analysis/RevenueAnalysis.vue')
+      },
+      {
+        path: '/data-analysis/operation',
+        name: 'DataAnalysisOperation',
+        meta: { requiresAuth: true },
+        component: () => import('../views/data-analysis/OperationAnalysis.vue')
+      },
+      {
+        path: '/data-analysis',
+        redirect: '/data-analysis/elder'
       }
     ]
   }

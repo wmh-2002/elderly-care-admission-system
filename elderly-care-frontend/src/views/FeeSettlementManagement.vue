@@ -15,25 +15,30 @@
       <!-- 搜索和筛选区域 -->
       <div class="search-section">
         <el-form :inline="true" :model="searchForm" class="demo-form-inline">
-          <el-form-item label="老人姓名">
-            <el-input v-model="searchForm.elderName" placeholder="请输入老人姓名" :prefix-icon="User" />
-          </el-form-item>
-          <el-form-item label="结算状态">
-            <el-select v-model="searchForm.status" placeholder="请选择结算状态" :prefix-icon="CircleCheck">
-              <el-option label="未结算" value="未结算" />
-              <el-option label="已结算" value="已结算" />
+          <el-form-item label="老人">
+            <el-select v-model="searchForm.elderId" placeholder="请选择老人" filterable clearable>
+              <el-option
+                v-for="elder in elderOptions"
+                :key="elder.id"
+                :label="elder.name"
+                :value="elder.id"
+              />
             </el-select>
           </el-form-item>
-          <el-form-item label="结算日期">
+          <el-form-item label="账单月份">
             <el-date-picker
-              v-model="searchForm.settlementDate"
-              type="daterange"
-              range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
-              format="YYYY-MM-DD"
-              value-format="YYYY-MM-DD"
+              v-model="searchForm.billMonth"
+              type="month"
+              placeholder="请选择月份"
+              format="YYYY-MM"
+              value-format="YYYY-MM"
             />
+          </el-form-item>
+          <el-form-item label="状态">
+            <el-select v-model="searchForm.status" placeholder="请选择状态" clearable>
+              <el-option label="未缴清" :value="0" />
+              <el-option label="已缴清" :value="1" />
+            </el-select>
           </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="onSearch" :icon="Search">查询</el-button>
@@ -63,36 +68,42 @@
         border
       >
         <el-table-column type="selection" width="55" fixed="left" />
-        <el-table-column prop="id" label="ID" width="80" fixed="left" />
+        <el-table-column prop="id" label="账单ID" width="80" fixed="left" />
         <el-table-column prop="elderName" label="老人姓名" min-width="120" fixed="left" />
-        <el-table-column prop="roomNo" label="房间号" min-width="100" />
-        <el-table-column prop="bedNo" label="床位号" min-width="100" />
-        <el-table-column prop="settlementType" label="结算类型" min-width="120">
+        <el-table-column prop="elderNo" label="老人编号" min-width="100" />
+        <el-table-column prop="billMonth" label="账单月份" min-width="100">
           <template #default="{ row }">
-            <el-tag :type="getSettlementTypeTag(row.settlementType)">
-              {{ row.settlementType }}
-            </el-tag>
+            <span>{{ row.billMonth }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="settlementAmount" label="结算金额" min-width="120">
+        <el-table-column prop="totalAmount" label="应付金额" min-width="120">
           <template #default="{ row }">
-            <span>¥{{ row.settlementAmount.toFixed(2) }}</span>
+            <span class="amount-text">¥{{ row.totalAmount.toFixed(2) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="settlementDate" label="结算日期" min-width="120" />
-        <el-table-column prop="status" label="结算状态" min-width="100">
+        <el-table-column prop="paidAmount" label="已付金额" min-width="120">
+          <template #default="{ row }">
+            <span class="paid-amount-text">¥{{ row.paidAmount.toFixed(2) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="paymentMethod" label="支付方式" min-width="100" />
+        <el-table-column prop="status" label="状态" min-width="100">
           <template #default="{ row }">
             <el-tag :type="getStatusType(row.status)">
-              {{ row.status }}
+              {{ row.statusText }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="operator" label="操作员" min-width="120" />
+        <el-table-column prop="createdAt" label="创建时间" min-width="160">
+          <template #default="{ row }">
+            <span>{{ formatDateTime(row.createdAt) }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" min-width="200" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="viewDetails(row)">详情</el-button>
-            <el-button size="small" type="primary" @click="editSettlement(row)" :disabled="row.status === '已结算'">编辑</el-button>
-            <el-button size="small" type="danger" @click="deleteSettlement(row.id)" :disabled="row.status === '已结算'">删除</el-button>
+            <el-button size="small" type="primary" @click="payBill(row)" :disabled="row.status === 1">支付</el-button>
+            <el-button size="small" type="danger" @click="deleteSettlement(row.id)" :disabled="row.status === 1">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -112,14 +123,14 @@
       </div>
     </el-card>
     
-    <!-- 新增/编辑结算弹窗 -->
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="700px">
+    <!-- 账单结算弹窗 -->
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="800px">
       <el-form :model="settlementForm" :rules="settlementRules" ref="settlementFormRef" label-width="120px">
         <el-form-item label="选择老人" prop="elderId">
-          <el-select 
-            v-model="settlementForm.elderId" 
-            placeholder="请选择老人" 
-            style="width: 100%" 
+          <el-select
+            v-model="settlementForm.elderId"
+            placeholder="请选择老人"
+            style="width: 100%"
             filterable
             @change="handleElderChange"
           >
@@ -133,63 +144,53 @@
             </el-option>
           </el-select>
         </el-form-item>
-        
+
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="结算类型" prop="settlementType">
-              <el-select v-model="settlementForm.settlementType" placeholder="请选择结算类型" style="width: 100%">
-                <el-option label="月度结算" value="月度结算" />
-                <el-option label="季度结算" value="季度结算" />
-                <el-option label="年度结算" value="年度结算" />
-                <el-option label="临时结算" value="临时结算" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="结算金额" prop="settlementAmount">
-              <el-input-number 
-                v-model="settlementForm.settlementAmount" 
-                :min="0" 
-                :precision="2" 
-                :step="100"
-                placeholder="请输入结算金额"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="结算日期" prop="settlementDate">
+            <el-form-item label="账单月份" prop="billMonth">
               <el-date-picker
-                v-model="settlementForm.settlementDate"
-                type="date"
-                placeholder="选择结算日期"
-                format="YYYY-MM-DD"
-                value-format="YYYY-MM-DD"
+                v-model="settlementForm.billMonth"
+                type="month"
+                placeholder="选择账单月份"
+                format="YYYY-MM"
+                value-format="YYYY-MM"
                 style="width: 100%"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="结算状态" prop="status">
-              <el-select v-model="settlementForm.status" placeholder="请选择结算状态" style="width: 100%">
-                <el-option label="未结算" value="未结算" />
-                <el-option label="已结算" value="已结算" />
+            <el-form-item label="支付方式">
+              <el-select v-model="settlementForm.paymentMethod" placeholder="请选择支付方式" style="width: 100%">
+                <el-option label="现金" value="现金" />
+                <el-option label="微信" value="微信" />
+                <el-option label="支付宝" value="支付宝" />
+                <el-option label="银行卡" value="银行卡" />
+                <el-option label="其它" value="其它" />
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
-        
-        <el-form-item label="结算说明" prop="description">
-          <el-input 
-            v-model="settlementForm.description" 
-            type="textarea" 
-            :rows="3" 
-            placeholder="请输入结算说明"
-          />
-        </el-form-item>
+
+        <!-- 老人信息展示 -->
+        <div v-if="selectedElder" class="elder-info-section">
+          <el-divider>老人信息</el-divider>
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="老人姓名">{{ selectedElder.name }}</el-descriptions-item>
+            <el-descriptions-item label="老人编号">{{ selectedElder.elderNo }}</el-descriptions-item>
+            <el-descriptions-item label="房间号">{{ selectedElder.roomNo }}-{{ selectedElder.bedNo }}</el-descriptions-item>
+            <el-descriptions-item label="护理等级">{{ selectedElder.careLevelName || '暂无' }}</el-descriptions-item>
+          </el-descriptions>
+        </div>
+
+        <!-- 费用明细 -->
+        <el-divider>费用明细</el-divider>
+        <div class="fee-preview">
+          <p>系统将自动计算以下费用：</p>
+          <ul>
+            <li>🧓 <strong>护理费用</strong>：根据护理等级自动计算当月天数 × 日单价</li>
+            <li>➕ <strong>附加费用</strong>：可添加餐饮、医疗等额外费用</li>
+          </ul>
+        </div>
         
         <el-form-item label="费用明细">
           <el-table
@@ -220,23 +221,24 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { 
-  Search, 
-  Refresh, 
-  Plus, 
-  Delete, 
-  User, 
+import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  Search,
+  Refresh,
+  Plus,
+  Delete,
+  User,
   CircleCheck,
   Download,
   Menu
 } from '@element-plus/icons-vue'
+import api from '@/api'
 
 // 搜索表单
 const searchForm = reactive({
-  elderName: '',
-  status: '',
-  settlementDate: []
+  elderId: null,
+  billMonth: '',
+  status: null
 })
 
 // 结算列表数据
@@ -265,60 +267,93 @@ const settlementRules = {
   elderId: [
     { required: true, message: '请选择老人', trigger: 'change' }
   ],
-  settlementType: [
-    { required: true, message: '请选择结算类型', trigger: 'change' }
-  ],
-  settlementAmount: [
-    { required: true, message: '请输入结算金额', trigger: 'blur' },
-    { type: 'number', message: '金额必须为数字值', trigger: 'blur' }
-  ],
-  settlementDate: [
-    { required: true, message: '请选择结算日期', trigger: 'change' }
-  ],
-  status: [
-    { required: true, message: '请选择结算状态', trigger: 'change' }
+  billMonth: [
+    { required: true, message: '请选择账单月份', trigger: 'change' }
   ]
 }
 
-// 模拟数据加载
-const loadSettlements = () => {
-  // 模拟从 API 获取数据
-  const mockData = []
-  for (let i = 1; i <= 30; i++) {
-    const statusOptions = ['未结算', '已结算']
-    const status = statusOptions[Math.floor(Math.random() * statusOptions.length)]
-    
-    mockData.push({
-      id: i,
-      elderId: Math.floor(Math.random() * 50) + 1,
-      elderName: `老人${Math.floor(Math.random() * 50) + 1}`,
-      roomNo: `${Math.floor(Math.random() * 10) + 1}${String(Math.floor(Math.random() * 100)).padStart(2, '0')}`,
-      bedNo: String(Math.floor(Math.random() * 10) + 1),
-      settlementType: ['月度结算', '季度结算', '年度结算', '临时结算'][Math.floor(Math.random() * 4)],
-      settlementAmount: Math.floor(Math.random() * 10000) + 1000,
-      settlementDate: `${2023 + Math.floor(Math.random() * 2)}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
-      status: status,
-      operator: `操作员${Math.floor(Math.random() * 10) + 1}`,
-      description: `本次结算为${Math.floor(Math.random() * 4) + 1}月费用`
-    })
+// 选中的老人信息
+const selectedElder = ref(null)
+
+// 加载账单数据
+const loadSettlements = async () => {
+  console.log('加载账单列表数据...')
+  try {
+    const params = {
+      page: currentPage.value,
+      size: pageSize.value,
+      elderId: searchForm.elderId,
+      billMonth: searchForm.billMonth,
+      status: searchForm.status
+    }
+
+    console.log('API请求参数:', params)
+    const response = await api.bill.getBillList(params)
+    console.log('API响应:', response)
+
+    if (response.data && response.data.code === 200) {
+      const pageData = response.data.data
+      console.log('账单列表数据:', pageData)
+
+      settlementList.value = pageData.content.map(bill => ({
+        id: bill.id,
+        elderId: bill.elderId,
+        elderName: bill.elderName,
+        elderNo: bill.elderNo,
+        billMonth: bill.billMonth,
+        totalAmount: bill.totalAmount,
+        paidAmount: bill.paidAmount,
+        paymentMethod: bill.paymentMethod,
+        status: bill.status,
+        statusText: bill.statusText,
+        createdAt: bill.createdAt,
+        updatedAt: bill.updatedAt,
+        details: bill.details || []
+      }))
+
+      total.value = pageData.totalElements
+      console.log('数据加载完成，共', settlementList.value.length, '条记录')
+    } else {
+      console.warn('API响应格式不正确:', response.data)
+      settlementList.value = []
+      total.value = 0
+    }
+  } catch (error) {
+    console.error('加载账单列表失败:', error)
+    ElMessage.error('加载账单列表失败')
+    settlementList.value = []
+    total.value = 0
   }
-  settlementList.value = mockData
-  total.value = mockData.length
 }
 
 // 加载老人选项数据
-const loadElders = () => {
-  const mockElders = []
-  for (let i = 1; i <= 50; i++) {
-    mockElders.push({
-      id: i,
-      name: `老人${i}`,
-      elderNo: `ELDER${String(i).padStart(4, '0')}`,
-      roomNo: `${Math.floor(i/5) + 1}${String(i%5 + 1).padStart(2, '0')}`,
-      bedNo: String(i%8 + 1)
+const loadElders = async () => {
+  console.log('加载老人列表数据...')
+  try {
+    const response = await api.elder.getElderList({
+      page: 1,
+      size: 1000 // 获取所有老人用于下拉选择
     })
+
+    if (response.data && response.data.code === 200) {
+      const pageData = response.data.data
+      elderOptions.value = pageData.content.map(elder => ({
+        id: elder.id,
+        name: elder.name,
+        elderNo: elder.elderNo,
+        roomNo: elder.roomNo,
+        bedNo: elder.bedNo
+      }))
+      console.log('老人选项加载完成，共', elderOptions.value.length, '个老人')
+    } else {
+      console.warn('老人API响应格式不正确:', response.data)
+      elderOptions.value = []
+    }
+  } catch (error) {
+    console.error('加载老人列表失败:', error)
+    ElMessage.error('加载老人列表失败')
+    elderOptions.value = []
   }
-  elderOptions.value = mockElders
 }
 
 // 获取结算类型标签
@@ -335,9 +370,53 @@ const getSettlementTypeTag = (type) => {
 // 获取状态类型
 const getStatusType = (status) => {
   switch(status) {
-    case '已结算': return 'success'
-    case '未结算': return 'warning'
+    case 1: return 'success'  // 已缴清
+    case 0: return 'warning'  // 未缴清
     default: return 'info'
+  }
+}
+
+// 格式化日期时间
+const formatDateTime = (dateTime) => {
+  if (!dateTime) return '-'
+  const date = new Date(dateTime)
+  return date.toLocaleString('zh-CN')
+}
+
+// 支付账单
+const payBill = async (bill) => {
+  console.log('支付账单:', bill)
+
+  try {
+    const remainingAmount = bill.totalAmount - bill.paidAmount
+
+    // 这里可以弹出一个支付确认对话框
+    const confirmed = await ElMessageBox.confirm(
+      `确认支付 ¥${remainingAmount.toFixed(2)} 给账单 ${bill.id} 吗？`,
+      '确认支付',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+
+    if (confirmed) {
+      const response = await api.bill.payBill(bill.id, { paidAmount: remainingAmount })
+      console.log('支付API响应:', response)
+
+      if (response.data && response.data.code === 200) {
+        ElMessage.success('支付成功')
+        loadSettlements()
+      } else {
+        ElMessage.error('支付失败: ' + (response.data?.message || '未知错误'))
+      }
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('支付失败:', error)
+      ElMessage.error('支付失败: ' + (error.response?.data?.message || error.message))
+    }
   }
 }
 
@@ -349,9 +428,10 @@ const onSearch = () => {
 
 // 重置
 const onReset = () => {
-  searchForm.elderName = ''
-  searchForm.status = ''
-  searchForm.settlementDate = []
+  searchForm.elderId = null
+  searchForm.billMonth = ''
+  searchForm.status = null
+  currentPage.value = 1
   loadSettlements()
 }
 
@@ -428,26 +508,84 @@ const handleCurrentChange = (page) => {
 }
 
 // 处理老人选择变化
-const handleElderChange = (elderId) => {
+const handleElderChange = async (elderId) => {
   console.log('Selected elder:', elderId)
-  const selectedElder = elderOptions.value.find(elder => elder.id === elderId)
-  if (selectedElder) {
-    // 可以根据老人信息自动填充一些字段
-    console.log('Selected elder details:', selectedElder)
+  const elder = elderOptions.value.find(elder => elder.id === elderId)
+  if (elder) {
+    selectedElder.value = elder
+    console.log('Selected elder details:', elder)
+
+    // 可以在这里获取老人的更多详细信息，如果需要的话
+    try {
+      const response = await api.elder.getElderById(elderId)
+      if (response.data && response.data.code === 200) {
+        const elderDetail = response.data.data
+        selectedElder.value = {
+          ...elder,
+          careLevelName: elderDetail.careLevelName || '暂无'
+        }
+        console.log('Elder detail loaded:', selectedElder.value)
+      }
+    } catch (error) {
+      console.warn('Failed to load elder details:', error)
+    }
+  } else {
+    selectedElder.value = null
   }
 }
 
-// 提交表单
-const submitForm = () => {
-  settlementFormRef.value.validate((valid) => {
+// 重置表单
+const resetForm = () => {
+  settlementForm.value = {
+    elderId: null,
+    billMonth: '',
+    paymentMethod: '现金',
+    additionalFees: []
+  }
+  selectedElder.value = null
+}
+
+// 提交表单 - 调用账单结算API
+const submitForm = async () => {
+  settlementFormRef.value.validate(async (valid) => {
     if (valid) {
-      console.log('Submit form:', settlementForm.value)
-      // 实际应用中会调用API提交数据
-      dialogVisible.value = false
-      loadSettlements()
-      ElMessage.success('费用结算记录保存成功')
+      console.log('提交账单结算:', settlementForm.value)
+
+      try {
+        // 构建账单结算请求数据
+        const settleData = {
+          elderId: settlementForm.value.elderId,
+          billMonth: settlementForm.value.billMonth,
+          paymentMethod: settlementForm.value.paymentMethod || '现金',
+          additionalFees: [] // 如果需要添加额外费用，可以在这里扩展
+        }
+
+        console.log('API请求数据:', settleData)
+
+        // 调用账单结算API
+        const response = await api.bill.settleBill(settleData)
+        console.log('账单结算API响应:', response)
+
+        if (response.data && response.data.code === 200) {
+          ElMessage.success('账单结算成功')
+
+          // 关闭弹窗并刷新列表
+          dialogVisible.value = false
+          loadSettlements()
+
+          // 重置表单
+          resetForm()
+
+          console.log('账单结算完成，账单ID:', response.data.data.id)
+        } else {
+          ElMessage.error('账单结算失败: ' + (response.data?.message || '未知错误'))
+        }
+      } catch (error) {
+        console.error('账单结算失败:', error)
+        ElMessage.error('账单结算失败: ' + (error.response?.data?.message || error.message))
+      }
     } else {
-      console.log('Validation failed!')
+      console.log('表单验证失败!')
     }
   })
 }
@@ -579,5 +717,42 @@ onMounted(() => {
 
 :deep(.el-table .el-table__fixed),
 :deep(.el-table .el-table__fixed-right) {
+}
+
+/* 金额显示样式 */
+.amount-text {
+  font-weight: bold;
+  color: #e6a23c;
+}
+
+.paid-amount-text {
+  font-weight: bold;
+  color: #67c23a;
+}
+
+/* 老人信息展示样式 */
+.elder-info-section {
+  margin: 20px 0;
+}
+
+.elder-info-section .el-descriptions {
+  margin-top: 10px;
+}
+
+.fee-preview {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+  margin: 15px 0;
+}
+
+.fee-preview ul {
+  margin: 10px 0 0 0;
+  padding-left: 20px;
+}
+
+.fee-preview li {
+  margin-bottom: 8px;
+  color: #606266;
 }
 </style>

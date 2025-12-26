@@ -144,7 +144,7 @@ import {
   Download,
   Menu
 } from '@element-plus/icons-vue'
-import roomAPI from '@/api/room'
+import api from '@/api'
 
 // 搜索表单
 const searchForm = reactive({
@@ -195,7 +195,7 @@ const loadRooms = async () => {
       floor: searchForm.floor ? parseInt(searchForm.floor) : undefined
     }
 
-    const response = await roomAPI.getRoomList(params)
+    const response = await api.room.getRoomList(params)
     if (response.data.code === 200) {
       roomList.value = response.data.data.content || []
       total.value = response.data.data.totalElements || 0
@@ -271,7 +271,7 @@ const deleteRoom = async (id) => {
       type: 'warning'
     })
 
-    const response = await roomAPI.deleteRoom(id)
+    const response = await api.room.deleteRoom(id)
     if (response.data.code === 200) {
       ElMessage.success('删除成功')
       loadRooms()
@@ -310,10 +310,10 @@ const submitForm = async () => {
         let response
         if (roomForm.value.id) {
           // 更新房间
-          response = await roomAPI.updateRoom(roomForm.value.id, roomForm.value)
+          response = await api.room.updateRoom(roomForm.value.id, roomForm.value)
         } else {
           // 创建房间
-          response = await roomAPI.createRoom(roomForm.value)
+          response = await api.room.createRoom(roomForm.value)
         }
 
         if (response.data.code === 200) {

@@ -74,6 +74,7 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers(mvcMatcherBuilder.pattern("/api/auth/**")).permitAll()
+                .requestMatchers(mvcMatcherBuilder.pattern("/api/data-analysis/**")).permitAll()
                 .requestMatchers(mvcMatcherBuilder.pattern("/h2-console/**")).permitAll()
                 .anyRequest().authenticated()
             );

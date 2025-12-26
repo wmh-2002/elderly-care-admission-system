@@ -44,11 +44,9 @@ spring:
     defer-datasource-initialization: true
 
   # 禁用SQL脚本初始化，由JPA自动管理表结构
-  # sql:
-  #   init:
-  #     mode: always
-  #     schema-locations: classpath:schema.sql
-  #     data-locations: classpath:data.sql
+  sql:
+    init:
+      mode: never
 
   security:
     enabled: true

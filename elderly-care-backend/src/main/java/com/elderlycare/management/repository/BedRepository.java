@@ -3,6 +3,7 @@ package com.elderlycare.management.repository;
 import com.elderlycare.management.entity.Bed;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -20,5 +21,8 @@ public interface BedRepository extends JpaRepository<Bed, Long>, JpaSpecificatio
     boolean existsByRoomIdAndBedNo(Long roomId, String bedNo);
 
     boolean existsByRoomIdAndBedNoAndIdNot(Long roomId, String bedNo, Long id);
+
+    // 统计查询方法
+    long countByStatus(Integer status);
 }
 

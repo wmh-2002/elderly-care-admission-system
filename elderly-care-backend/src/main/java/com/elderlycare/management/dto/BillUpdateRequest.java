@@ -12,6 +12,8 @@ public class BillUpdateRequest {
     @DecimalMin(value = "0.0", message = "已付金额不能为负数")
     private BigDecimal paidAmount;
 
+    private String paymentMethod; // 支付方式
+
     private Integer status; // 0 未缴清  1 已缴清
 
     private List<BillDetailCreateRequest> details; // 账单明细
@@ -31,6 +33,14 @@ public class BillUpdateRequest {
 
     public void setPaidAmount(BigDecimal paidAmount) {
         this.paidAmount = paidAmount;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
     }
 
     public Integer getStatus() {

@@ -13,6 +13,7 @@ public class BillResponse {
     private String billMonth;
     private BigDecimal totalAmount;
     private BigDecimal paidAmount;
+    private String paymentMethod; // 支付方式
     private Integer status;
     private String statusText; // 状态文本：未缴清/已缴清
     private LocalDateTime createdAt;
@@ -28,6 +29,7 @@ public class BillResponse {
         this.billMonth = bill.getBillMonth();
         this.totalAmount = bill.getTotalAmount();
         this.paidAmount = bill.getPaidAmount();
+        this.paymentMethod = bill.getPaymentMethod();
         this.status = bill.getStatus();
         this.statusText = bill.getStatus() != null && bill.getStatus() == 1 ? "已缴清" : "未缴清";
         this.createdAt = bill.getCreatedAt();
@@ -94,6 +96,14 @@ public class BillResponse {
 
     public void setPaidAmount(BigDecimal paidAmount) {
         this.paidAmount = paidAmount;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
     }
 
     public Integer getStatus() {

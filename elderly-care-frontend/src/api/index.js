@@ -6,6 +6,8 @@ import nursingCategoryAPI from './nursingCategory'
 import nursingPlanAPI from './nursingPlan'
 import roleAPI from './role'
 import userAPI from './user'
+import billAPI from './bill'
+import { getElderAnalysisData, getRevenueAnalysisData, getOperationAnalysisData, getAllAnalysisData } from './dataAnalysis'
 
 // 将所有API模块导出
 const api = {
@@ -16,7 +18,14 @@ const api = {
   nursingCategory: nursingCategoryAPI,
   nursingPlan: nursingPlanAPI,
   role: roleAPI,
-  user: userAPI
+  user: userAPI,
+  bill: billAPI,
+  dataAnalysis: {
+    getElderAnalysisData,
+    getRevenueAnalysisData,
+    getOperationAnalysisData,
+    getAllAnalysisData
+  }
 }
 
 export default api
