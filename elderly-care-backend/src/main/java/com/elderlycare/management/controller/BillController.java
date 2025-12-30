@@ -25,7 +25,7 @@ public class BillController {
      * 获取账单列表（分页）
      */
     @GetMapping
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管') or hasRole('前台接待')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PageResponse<BillResponse>>> getBillList(
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
@@ -53,7 +53,7 @@ public class BillController {
      * 根据ID获取账单信息
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管') or hasRole('前台接待')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<BillResponse>> getBillById(@PathVariable Long id) {
         try {
             BillResponse bill = billService.getBillById(id);
@@ -68,7 +68,7 @@ public class BillController {
      * 根据老人ID和月份获取账单
      */
     @GetMapping("/elder/{elderId}/month/{billMonth}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管') or hasRole('前台接待')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<BillResponse>> getBillByElderAndMonth(
             @PathVariable Long elderId,
             @PathVariable String billMonth) {
@@ -85,7 +85,7 @@ public class BillController {
      * 创建账单
      */
     @PostMapping
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<BillResponse>> createBill(@Valid @RequestBody BillCreateRequest request) {
         try {
             BillResponse bill = billService.createBill(request);
@@ -103,7 +103,7 @@ public class BillController {
      * 更新账单
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<BillResponse>> updateBill(
             @PathVariable Long id,
             @Valid @RequestBody BillUpdateRequest request) {
@@ -123,7 +123,7 @@ public class BillController {
      * 删除账单
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<String>> deleteBill(@PathVariable Long id) {
         try {
             billService.deleteBill(id);
@@ -141,7 +141,7 @@ public class BillController {
      * 支付账单
      */
     @PostMapping("/{id}/pay")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('前台接待')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<BillResponse>> payBill(
             @PathVariable Long id,
             @RequestBody java.util.Map<String, BigDecimal> request) {

@@ -107,6 +107,23 @@ const routes = [
   }
 ]
 
+// 前端路由权限配置（后端API对所有角色开放，只在前端控制路由访问）
+const routePermissions = {
+  '系统管理员': ['/dashboard', '/users', '/roles', '/profile', '/elders', '/nursing-categories', '/nursing-plans', '/fee-settlement', '/rooms', '/beds', '/data-analysis/elder', '/data-analysis/revenue', '/data-analysis/operation'],
+  '院长': ['/dashboard', '/users', '/roles', '/profile', '/elders', '/rooms', '/beds', '/data-analysis/elder', '/data-analysis/revenue', '/data-analysis/operation'],
+  '护理主管': ['/dashboard', '/elders', '/nursing-categories', '/nursing-plans', '/rooms', '/beds', '/data-analysis/elder', '/data-analysis/operation', '/profile'],
+  '护理员': ['/dashboard', '/elders', '/nursing-plans', '/profile'],
+  '财务人员': ['/dashboard', '/elders', '/fee-settlement', '/data-analysis/revenue', '/profile'],
+  '前台接待': ['/dashboard', '/elders', '/rooms', '/beds', '/fee-settlement', '/profile']
+}
+
+// 检查用户是否有权限访问某个路由
+const hasRoutePermission = (roleName, routePath) => {
+  if (!roleName) return false
+  const allowedRoutes = routePermissions[roleName]
+  return allowedRoutes ? allowedRoutes.includes(routePath) : false
+}
+
 // Make sure to export the routes properly
 export { routes }
 // Also export as default for backwards compatibility

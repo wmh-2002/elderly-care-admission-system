@@ -24,7 +24,7 @@ public class CarePlanController {
      * 获取护理计划列表（分页）
      */
     @GetMapping
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管') or hasRole('护理员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PageResponse<CarePlanResponse>>> getCarePlanList(
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
@@ -54,7 +54,7 @@ public class CarePlanController {
      * 根据ID获取护理计划信息
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管') or hasRole('护理员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<CarePlanResponse>> getCarePlanById(@PathVariable Long id) {
         try {
             CarePlanResponse carePlan = carePlanService.getCarePlanById(id);
@@ -71,7 +71,7 @@ public class CarePlanController {
      * 根据老人ID获取最新的护理计划
      */
     @GetMapping("/elder/{elderId}/latest")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管') or hasRole('护理员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<CarePlanResponse>> getLatestCarePlanByElderId(@PathVariable Long elderId) {
         try {
             CarePlanResponse carePlan = carePlanService.getLatestCarePlanByElderId(elderId);
@@ -88,7 +88,7 @@ public class CarePlanController {
      * 创建护理计划
      */
     @PostMapping
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<CarePlanResponse>> createCarePlan(@Valid @RequestBody CarePlanCreateRequest request) {
         try {
             CarePlanResponse carePlan = carePlanService.createCarePlan(request);
@@ -108,7 +108,7 @@ public class CarePlanController {
      * 更新护理计划
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<CarePlanResponse>> updateCarePlan(
             @PathVariable Long id,
             @Valid @RequestBody CarePlanUpdateRequest request) {
@@ -130,7 +130,7 @@ public class CarePlanController {
      * 删除护理计划
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<String>> deleteCarePlan(@PathVariable Long id) {
         try {
             carePlanService.deleteCarePlan(id);

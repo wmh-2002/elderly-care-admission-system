@@ -22,7 +22,7 @@ public class DataAnalysisController {
      * 获取老人分析数据
      */
     @GetMapping("/elder")
-    //@PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管') or hasRole('护理员') or hasRole('前台接待')")
+    //@PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<DataAnalysisResponse.ElderAnalysisData>> getElderAnalysisData() {
         try {
             DataAnalysisResponse.ElderAnalysisData response = dataAnalysisService.getElderAnalysisData();
@@ -37,7 +37,7 @@ public class DataAnalysisController {
      * 获取营收分析数据
      */
     @GetMapping("/revenue")
-    //@PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('财务人员')")
+    //@PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<DataAnalysisResponse.RevenueAnalysisData>> getRevenueAnalysisData() {
         try {
             DataAnalysisResponse.RevenueAnalysisData response = dataAnalysisService.getRevenueAnalysisData();
@@ -52,7 +52,7 @@ public class DataAnalysisController {
      * 获取运营分析数据
      */
     @GetMapping("/operation")
-    //@PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管') or hasRole('护理员') or hasRole('前台接待')")
+    //@PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<DataAnalysisResponse.OperationAnalysisData>> getOperationAnalysisData() {
         try {
             DataAnalysisResponse.OperationAnalysisData response = dataAnalysisService.getOperationAnalysisData();
@@ -67,7 +67,7 @@ public class DataAnalysisController {
      * 获取完整的数据分析响应
      */
     @GetMapping
-    //@PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管') or hasRole('护理员') or hasRole('前台接待')")
+    //@PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<DataAnalysisResponse>> getAllAnalysisData() {
         try {
             DataAnalysisResponse response = dataAnalysisService.getAllAnalysisData();

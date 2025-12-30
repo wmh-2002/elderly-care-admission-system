@@ -24,7 +24,7 @@ public class BillDetailController {
      * 根据账单ID获取账单明细列表
      */
     @GetMapping("/bill/{billId}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管') or hasRole('前台接待')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<BillDetailResponse>>> getBillDetailsByBillId(@PathVariable Long billId) {
         try {
             List<BillDetailResponse> details = billDetailService.getBillDetailsByBillId(billId);
@@ -39,7 +39,7 @@ public class BillDetailController {
      * 根据ID获取账单明细
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管') or hasRole('前台接待')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<BillDetailResponse>> getBillDetailById(@PathVariable Long id) {
         try {
             BillDetailResponse detail = billDetailService.getBillDetailById(id);
@@ -54,7 +54,7 @@ public class BillDetailController {
      * 创建账单明细
      */
     @PostMapping("/bill/{billId}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<BillDetailResponse>> createBillDetail(
             @PathVariable Long billId,
             @Valid @RequestBody BillDetailCreateRequest request) {
@@ -74,7 +74,7 @@ public class BillDetailController {
      * 更新账单明细
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<BillDetailResponse>> updateBillDetail(
             @PathVariable Long id,
             @Valid @RequestBody BillDetailUpdateRequest request) {
@@ -94,7 +94,7 @@ public class BillDetailController {
      * 删除账单明细
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<String>> deleteBillDetail(@PathVariable Long id) {
         try {
             billDetailService.deleteBillDetail(id);
@@ -108,5 +108,6 @@ public class BillDetailController {
         }
     }
 }
+
 
 

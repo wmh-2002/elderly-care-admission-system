@@ -24,7 +24,7 @@ public class BedController {
      * 获取床位列表（分页）
      */
     @GetMapping
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('前台接待') or hasRole('护理主管')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PageResponse<BedResponse>>> getBedList(
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
@@ -54,7 +54,7 @@ public class BedController {
      * 根据ID获取床位信息
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('前台接待') or hasRole('护理主管')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<BedResponse>> getBedById(@PathVariable Long id) {
         try {
             BedResponse bed = bedService.getBedById(id);
@@ -71,7 +71,7 @@ public class BedController {
      * 根据房间ID获取该房间的所有床位
      */
     @GetMapping("/room/{roomId}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('前台接待') or hasRole('护理主管')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<BedResponse>>> getBedsByRoomId(@PathVariable Long roomId) {
         try {
             List<BedResponse> beds = bedService.getBedsByRoomId(roomId);
@@ -88,7 +88,7 @@ public class BedController {
      * 获取所有空闲床位
      */
     @GetMapping("/available")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('前台接待')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<BedResponse>>> getAvailableBeds() {
         try {
             List<BedResponse> availableBeds = bedService.getAvailableBeds();
@@ -105,7 +105,7 @@ public class BedController {
      * 获取指定房间的空闲床位
      */
     @GetMapping("/available/room/{roomId}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('前台接待')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<BedResponse>>> getAvailableBedsByRoom(@PathVariable Long roomId) {
         try {
             List<BedResponse> availableBeds = bedService.getAvailableBedsByRoom(roomId);
@@ -122,7 +122,7 @@ public class BedController {
      * 创建新床位
      */
     @PostMapping
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<BedResponse>> createBed(@Valid @RequestBody BedCreateRequest request) {
         try {
             BedResponse bed = bedService.createBed(request);
@@ -142,7 +142,7 @@ public class BedController {
      * 更新床位信息
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<BedResponse>> updateBed(
             @PathVariable Long id,
             @Valid @RequestBody BedUpdateRequest request) {
@@ -164,7 +164,7 @@ public class BedController {
      * 更新床位状态 - 设为空闲
      */
     @PutMapping("/{id}/available")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<BedResponse>> setBedAvailable(@PathVariable Long id) {
         try {
             BedResponse bed = bedService.updateBedStatus(id, 0);
@@ -184,7 +184,7 @@ public class BedController {
      * 更新床位状态 - 设为已入住
      */
     @PutMapping("/{id}/occupied")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('前台接待')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<BedResponse>> setBedOccupied(@PathVariable Long id) {
         try {
             BedResponse bed = bedService.updateBedStatus(id, 1);
@@ -204,7 +204,7 @@ public class BedController {
      * 更新床位状态 - 设为维修
      */
     @PutMapping("/{id}/maintenance")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<BedResponse>> setBedMaintenance(@PathVariable Long id) {
         try {
             BedResponse bed = bedService.updateBedStatus(id, 2);
@@ -224,7 +224,7 @@ public class BedController {
      * 删除床位
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<String>> deleteBed(@PathVariable Long id) {
         try {
             bedService.deleteBed(id);

@@ -22,7 +22,7 @@ public class UserController {
      * 获取用户列表（分页）
      */
     @GetMapping
-    @PreAuthorize("hasRole('系统管理员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> getUserList(
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
@@ -58,7 +58,7 @@ public class UserController {
      * 根据ID获取用户信息
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable Long id) {
         UserResponse user = userService.getUserById(id);
         return ResponseEntity.ok(ApiResponse.success(user));
@@ -68,7 +68,7 @@ public class UserController {
      * 创建新用户
      */
     @PostMapping
-    @PreAuthorize("hasRole('系统管理员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<UserResponse>> createUser(@Valid @RequestBody UserCreateRequest request) {
         UserResponse user = userService.createUser(request);
         return ResponseEntity.ok(ApiResponse.success("用户创建成功", user));
@@ -78,7 +78,7 @@ public class UserController {
      * 更新用户信息
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(
             @PathVariable Long id,
             @Valid @RequestBody UserUpdateRequest request) {
@@ -90,7 +90,7 @@ public class UserController {
      * 删除用户
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<String>> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.ok(ApiResponse.success("用户删除成功"));
@@ -100,7 +100,7 @@ public class UserController {
      * 启用用户
      */
     @PutMapping("/{id}/enable")
-    @PreAuthorize("hasRole('系统管理员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<UserResponse>> enableUser(@PathVariable Long id) {
         UserResponse user = userService.updateUserStatus(id, true);
         return ResponseEntity.ok(ApiResponse.success("用户已启用", user));
@@ -110,7 +110,7 @@ public class UserController {
      * 禁用用户
      */
     @PutMapping("/{id}/disable")
-    @PreAuthorize("hasRole('系统管理员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<UserResponse>> disableUser(@PathVariable Long id) {
         UserResponse user = userService.updateUserStatus(id, false);
         return ResponseEntity.ok(ApiResponse.success("用户已禁用", user));

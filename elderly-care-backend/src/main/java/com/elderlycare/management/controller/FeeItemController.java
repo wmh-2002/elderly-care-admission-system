@@ -24,7 +24,7 @@ public class FeeItemController {
      * 获取费用项目列表（分页）
      */
     @GetMapping
-    @PreAuthorize("hasRole('系统管理员') or hasRole('财务人员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PageResponse<FeeItemResponse>>> getFeeItemList(
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
@@ -54,7 +54,7 @@ public class FeeItemController {
      * 根据代码获取费用项目
      */
     @GetMapping("/{itemCode}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('财务人员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<FeeItemResponse>> getFeeItemByCode(@PathVariable String itemCode) {
         FeeItemResponse feeItem = feeItemService.getFeeItemByCode(itemCode);
         return ResponseEntity.ok(ApiResponse.success(feeItem));
@@ -64,7 +64,7 @@ public class FeeItemController {
      * 创建费用项目
      */
     @PostMapping
-    @PreAuthorize("hasRole('系统管理员') or hasRole('财务人员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<FeeItemResponse>> createFeeItem(@Valid @RequestBody FeeItemCreateRequest request) {
         FeeItemResponse feeItem = feeItemService.createFeeItem(request);
         return ResponseEntity.ok(ApiResponse.success("费用项目创建成功", feeItem));
@@ -74,7 +74,7 @@ public class FeeItemController {
      * 更新费用项目
      */
     @PutMapping("/{itemCode}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('财务人员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<FeeItemResponse>> updateFeeItem(
             @PathVariable String itemCode,
             @Valid @RequestBody FeeItemUpdateRequest request) {
@@ -86,7 +86,7 @@ public class FeeItemController {
      * 删除费用项目
      */
     @DeleteMapping("/{itemCode}")
-    @PreAuthorize("hasRole('系统管理员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<String>> deleteFeeItem(@PathVariable String itemCode) {
         feeItemService.deleteFeeItem(itemCode);
         return ResponseEntity.ok(ApiResponse.success("费用项目删除成功"));
@@ -96,7 +96,7 @@ public class FeeItemController {
      * 根据类型获取费用项目列表
      */
     @GetMapping("/type/{itemType}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('财务人员') or hasRole('前台接待')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<FeeItemResponse>>> getFeeItemsByType(@PathVariable String itemType) {
         List<FeeItemResponse> feeItems = feeItemService.getFeeItemsByType(itemType);
         return ResponseEntity.ok(ApiResponse.success(feeItems));

@@ -22,7 +22,7 @@ public class RoomController {
      * 获取房间列表（分页）
      */
     @GetMapping
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('前台接待')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PageResponse<RoomResponse>>> getRoomList(
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
@@ -54,7 +54,7 @@ public class RoomController {
      * 根据ID获取房间信息
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('前台接待')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<RoomResponse>> getRoomById(@PathVariable Long id) {
         try {
             RoomResponse room = roomService.getRoomById(id);
@@ -71,7 +71,7 @@ public class RoomController {
      * 创建新房间
      */
     @PostMapping
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<RoomResponse>> createRoom(@Valid @RequestBody RoomCreateRequest request) {
         try {
             RoomResponse room = roomService.createRoom(request);
@@ -91,7 +91,7 @@ public class RoomController {
      * 更新房间信息
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<RoomResponse>> updateRoom(
             @PathVariable Long id,
             @Valid @RequestBody RoomUpdateRequest request) {
@@ -113,7 +113,7 @@ public class RoomController {
      * 删除房间
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<String>> deleteRoom(@PathVariable Long id) {
         try {
             roomService.deleteRoom(id);

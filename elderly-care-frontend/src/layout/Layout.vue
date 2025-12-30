@@ -15,94 +15,94 @@
         active-text-color="#ffd04b"
         router
       >
-        <el-menu-item index="/dashboard">
+        <el-menu-item v-if="hasPermission('dashboard')" index="/dashboard">
           <el-icon><House /></el-icon>
           <span v-show="!isCollapse">控制面板</span>
         </el-menu-item>
-        <el-sub-menu index="system">
+        <el-sub-menu v-if="hasPermission('system')" index="system">
           <template #title>
             <el-icon><Setting /></el-icon>
             <span v-show="!isCollapse">系统管理</span>
           </template>
-          <el-menu-item index="/users">
+          <el-menu-item v-if="hasPermission('system-users')" index="/users">
             <el-icon><Avatar /></el-icon>
             <span v-show="!isCollapse">用户管理</span>
           </el-menu-item>
-          <el-menu-item index="/roles">
+          <el-menu-item v-if="hasPermission('system-roles')" index="/roles">
             <el-icon><UserFilled /></el-icon>
             <span v-show="!isCollapse">角色管理</span>
           </el-menu-item>
-          <el-menu-item index="/profile">
+          <el-menu-item v-if="hasPermission('system-profile')" index="/profile">
             <el-icon><User /></el-icon>
             <span v-show="!isCollapse">个人信息</span>
           </el-menu-item>
         </el-sub-menu>
-        <el-sub-menu index="elderly-care">
+        <el-sub-menu v-if="hasPermission('elderly-care')" index="elderly-care">
           <template #title>
             <el-icon><User /></el-icon>
             <span v-show="!isCollapse">老人服务</span>
           </template>
-          <el-menu-item index="/elders">
+          <el-menu-item v-if="hasPermission('elderly-care-elders')" index="/elders">
             <el-icon><User /></el-icon>
             <span v-show="!isCollapse">老人档案</span>
           </el-menu-item>
-          <el-menu-item index="/nursing-categories">
+          <el-menu-item v-if="hasPermission('elderly-care-nursing-categories')" index="/nursing-categories">
             <el-icon><FolderOpened /></el-icon>
             <span v-show="!isCollapse">护理分类</span>
           </el-menu-item>
         </el-sub-menu>
-        
-        <el-sub-menu index="nursing">
+
+        <el-sub-menu v-if="hasPermission('nursing')" index="nursing">
           <template #title>
             <el-icon><CaretRight /></el-icon>
             <span v-show="!isCollapse">护理管理</span>
           </template>
-          <el-menu-item index="/nursing-plans">
+          <el-menu-item v-if="hasPermission('nursing-plans')" index="/nursing-plans">
             <el-icon><Document /></el-icon>
             <span v-show="!isCollapse">护理计划</span>
           </el-menu-item>
         </el-sub-menu>
-        
-        <el-sub-menu index="fee">
+
+        <el-sub-menu v-if="hasPermission('fee')" index="fee">
           <template #title>
             <el-icon><Money /></el-icon>
             <span v-show="!isCollapse">费用管理</span>
           </template>
-          <el-menu-item index="/fee-settlement">
+          <el-menu-item v-if="hasPermission('fee-settlement')" index="/fee-settlement">
             <el-icon><Wallet /></el-icon>
             <span v-show="!isCollapse">费用结算</span>
           </el-menu-item>
         </el-sub-menu>
         
-        <el-sub-menu index="room-resource">
+        <el-sub-menu v-if="hasPermission('room-resource')" index="room-resource">
           <template #title>
             <el-icon><OfficeBuilding /></el-icon>
             <span v-show="!isCollapse">空间资源</span>
           </template>
-          <el-menu-item index="/rooms">
+          <el-menu-item v-if="hasPermission('room-resource-rooms')" index="/rooms">
             <el-icon><OfficeBuilding /></el-icon>
             <span v-show="!isCollapse">房间管理</span>
           </el-menu-item>
-          <el-menu-item index="/beds">
+          <el-menu-item v-if="hasPermission('room-resource-beds')" index="/beds">
             <el-icon><UserFilled /></el-icon>
             <span v-show="!isCollapse">床位管理</span>
           </el-menu-item>
         </el-sub-menu>
 
-        <el-sub-menu index="data-analysis">
+        <el-sub-menu v-if="hasPermission('data-analysis')" index="data-analysis">
           <template #title>
             <el-icon><TrendCharts /></el-icon>
             <span v-show="!isCollapse">数据分析</span>
           </template>
-          <el-menu-item index="/data-analysis/elder">
+          <el-menu-item v-if="hasPermission('data-analysis-elder')" index="/data-analysis/elder">
             <el-icon><User /></el-icon>
             <span v-show="!isCollapse">老人分析</span>
           </el-menu-item>
-          <el-menu-item index="/data-analysis/revenue">
+          <el-menu-item v-if="hasPermission('data-analysis-revenue')" index="/data-analysis/revenue">
             <el-icon><Money /></el-icon>
             <span v-show="!isCollapse">营收分析</span>
           </el-menu-item>
-          <el-menu-item index="/data-analysis/operation">
+          <el-menu-item v-if="hasPermission('data-analysis-operation')" index="/data-analysis/operation">
             <el-icon><Management /></el-icon>
             <span v-show="!isCollapse">运营分析</span>
           </el-menu-item>
@@ -202,6 +202,99 @@ const isCollapse = ref(false)
 // 用户信息
 const username = ref('管理员')
 const avatar = ref('https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png') // 默认头像
+const userRole = ref('') // 用户角色
+
+// 角色权限配置
+const rolePermissions = {
+  '系统管理员': {
+    dashboard: true,
+    system: true,
+    'system-users': true,
+    'system-roles': true,
+    'system-profile': true,
+    'elderly-care': true,
+    'elderly-care-elders': true,
+    'elderly-care-nursing-categories': true,
+    nursing: true,
+    'nursing-plans': true,
+    fee: true,
+    'fee-settlement': true,
+    'room-resource': true,
+    'room-resource-rooms': true,
+    'room-resource-beds': true,
+    'data-analysis': true,
+    'data-analysis-elder': true,
+    'data-analysis-revenue': true,
+    'data-analysis-operation': true
+  },
+  '院长': {
+    dashboard: true,
+    system: true,
+    'system-users': true,
+    'system-roles': true,
+    'system-profile': true,
+    'elderly-care': true,
+    'elderly-care-elders': true,
+    'room-resource': true,
+    'room-resource-rooms': true,
+    'room-resource-beds': true,
+    'data-analysis': true,
+    'data-analysis-elder': true,
+    'data-analysis-revenue': true,
+    'data-analysis-operation': true
+  },
+  '护理主管': {
+    dashboard: true,
+    'elderly-care': true,
+    'elderly-care-elders': true,
+    'elderly-care-nursing-categories': true,
+    nursing: true,
+    'nursing-plans': true,
+    'room-resource': true,
+    'room-resource-rooms': true,
+    'room-resource-beds': true,
+    'data-analysis': true,
+    'data-analysis-elder': true,
+    'data-analysis-operation': true,
+    'system-profile': true
+  },
+  '护理员': {
+    dashboard: true,
+    'elderly-care': true,
+    'elderly-care-elders': true,
+    nursing: true,
+    'nursing-plans': true,
+    'system-profile': true
+  },
+  '财务人员': {
+    dashboard: true,
+    'elderly-care': true,
+    'elderly-care-elders': true,
+    fee: true,
+    'fee-settlement': true,
+    'data-analysis': true,
+    'data-analysis-revenue': true,
+    'system-profile': true
+  },
+  '前台接待': {
+    dashboard: true,
+    'elderly-care': true,
+    'elderly-care-elders': true,
+    'room-resource': true,
+    'room-resource-rooms': true,
+    'room-resource-beds': true,
+    fee: true,
+    'fee-settlement': true,
+    'system-profile': true
+  }
+}
+
+// 检查用户是否有权限访问某个菜单
+const hasPermission = (menuKey) => {
+  if (!userRole.value) return false
+  const permissions = rolePermissions[userRole.value]
+  return permissions ? permissions[menuKey] : false
+}
 
 // 根据当前路由设置标题
 const title = computed(() => {
@@ -261,6 +354,7 @@ onMounted(() => {
   if (userInfo) {
     const parsedInfo = JSON.parse(userInfo)
     username.value = parsedInfo.realName || parsedInfo.username || '管理员'
+    userRole.value = parsedInfo.roleName || ''
   }
 })
 </script>

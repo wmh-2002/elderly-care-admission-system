@@ -25,7 +25,7 @@ public class CareLevelController {
      * 获取护理等级列表（分页）
      */
     @GetMapping
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管') or hasRole('财务人员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PageResponse<CareLevelResponse>>> getCareLevelList(
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
@@ -59,7 +59,7 @@ public class CareLevelController {
      * 获取所有护理等级（不分页）
      */
     @GetMapping("/all")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管') or hasRole('财务人员') or hasRole('前台接待')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<CareLevelResponse>>> getAllCareLevels() {
         try {
             List<CareLevelResponse> careLevels = careLevelService.getAllCareLevels();
@@ -76,7 +76,7 @@ public class CareLevelController {
      * 根据编码获取护理等级信息
      */
     @GetMapping("/{levelCode}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管') or hasRole('财务人员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<CareLevelResponse>> getCareLevelByCode(@PathVariable String levelCode) {
         try {
             CareLevelResponse careLevel = careLevelService.getCareLevelByCode(levelCode);
@@ -93,7 +93,7 @@ public class CareLevelController {
      * 根据价格范围获取护理等级
      */
     @GetMapping("/price-range")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('财务人员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<CareLevelResponse>>> getCareLevelsByPriceRange(
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice) {
@@ -112,7 +112,7 @@ public class CareLevelController {
      * 创建新护理等级
      */
     @PostMapping
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<CareLevelResponse>> createCareLevel(@Valid @RequestBody CareLevelCreateRequest request) {
         try {
             CareLevelResponse careLevel = careLevelService.createCareLevel(request);
@@ -132,7 +132,7 @@ public class CareLevelController {
      * 更新护理等级信息
      */
     @PutMapping("/{levelCode}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<CareLevelResponse>> updateCareLevel(
             @PathVariable String levelCode,
             @Valid @RequestBody CareLevelUpdateRequest request) {
@@ -154,7 +154,7 @@ public class CareLevelController {
      * 删除护理等级
      */
     @DeleteMapping("/{levelCode}")
-    @PreAuthorize("hasRole('系统管理员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<String>> deleteCareLevel(@PathVariable String levelCode) {
         try {
             careLevelService.deleteCareLevel(levelCode);

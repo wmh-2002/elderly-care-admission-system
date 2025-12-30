@@ -25,7 +25,7 @@ public class CareRecordController {
      * 获取护理记录列表（分页）
      */
     @GetMapping
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管') or hasRole('护理员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PageResponse<CareRecordResponse>>> getCareRecordList(
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
@@ -66,7 +66,7 @@ public class CareRecordController {
      * 根据ID获取护理记录信息
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管') or hasRole('护理员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<CareRecordResponse>> getCareRecordById(@PathVariable Long id) {
         try {
             CareRecordResponse careRecord = careRecordService.getCareRecordById(id);
@@ -83,7 +83,7 @@ public class CareRecordController {
      * 根据老人ID获取护理记录列表
      */
     @GetMapping("/elder/{elderId}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管') or hasRole('护理员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<CareRecordResponse>>> getCareRecordsByElderId(@PathVariable Long elderId) {
         try {
             List<CareRecordResponse> careRecords = careRecordService.getCareRecordsByElderId(elderId);
@@ -100,7 +100,7 @@ public class CareRecordController {
      * 创建护理记录
      */
     @PostMapping
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管') or hasRole('护理员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<CareRecordResponse>> createCareRecord(@Valid @RequestBody CareRecordCreateRequest request) {
         try {
             CareRecordResponse careRecord = careRecordService.createCareRecord(request);
@@ -120,7 +120,7 @@ public class CareRecordController {
      * 更新护理记录
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管') or hasRole('护理员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<CareRecordResponse>> updateCareRecord(
             @PathVariable Long id,
             @Valid @RequestBody CareRecordUpdateRequest request) {
@@ -142,7 +142,7 @@ public class CareRecordController {
      * 删除护理记录
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<String>> deleteCareRecord(@PathVariable Long id) {
         try {
             careRecordService.deleteCareRecord(id);

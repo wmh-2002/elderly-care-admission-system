@@ -348,7 +348,7 @@ const loadCategories = async () => {
 const loadNurses = async () => {
   try {
     // 从用户API获取用户列表，这里假设需要获取所有用户然后筛选护理员
-    const response = await api.auth.getUsers({ page: 1, size: 100 })
+    const response = await api.user.getUserList({ page: 1, size: 100 })
     if (response.data.code === 200) {
       // 过滤出护理员角色的用户（这里可能需要根据实际角色ID调整）
       nurseOptions.value = response.data.data.content || []

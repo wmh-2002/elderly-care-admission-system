@@ -156,7 +156,8 @@ const handleLogin = async () => {
           localStorage.setItem('userInfo', JSON.stringify({
             username: loginData.username || loginForm.username,
             realName: loginData.realName || '管理员',
-            role: loginData.roleName || 'admin',
+            roleName: loginData.roleName || '系统管理员',
+            roleId: loginData.roleId,
             userId: loginData.id
           }))
           

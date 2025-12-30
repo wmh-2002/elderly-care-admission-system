@@ -25,7 +25,7 @@ public class DashboardController {
      * 获取仪表盘数据
      */
     @GetMapping
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管') or hasRole('护理员') or hasRole('前台接待')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<DashboardResponse>> getDashboardData() {
         try {
             DashboardResponse response = dashboardService.getDashboardData();

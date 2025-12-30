@@ -22,7 +22,7 @@ public class RoleController {
      * 获取角色列表（分页）
      */
     @GetMapping
-    @PreAuthorize("hasRole('系统管理员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PageResponse<RoleResponse>>> getRoleList(
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
@@ -50,7 +50,7 @@ public class RoleController {
      * 根据ID获取角色信息
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<RoleResponse>> getRoleById(@PathVariable Long id) {
         try {
             RoleResponse role = roleService.getRoleById(id);
@@ -67,7 +67,7 @@ public class RoleController {
      * 创建新角色
      */
     @PostMapping
-    @PreAuthorize("hasRole('系统管理员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<RoleResponse>> createRole(@Valid @RequestBody RoleCreateRequest request) {
         try {
             RoleResponse role = roleService.createRole(request);
@@ -87,7 +87,7 @@ public class RoleController {
      * 更新角色信息
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<RoleResponse>> updateRole(
             @PathVariable Long id,
             @Valid @RequestBody RoleUpdateRequest request) {
@@ -109,7 +109,7 @@ public class RoleController {
      * 删除角色
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<String>> deleteRole(@PathVariable Long id) {
         try {
             roleService.deleteRole(id);

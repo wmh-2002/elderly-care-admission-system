@@ -22,7 +22,7 @@ public class ElderController {
      * 获取老人列表（分页）
      */
     @GetMapping
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管') or hasRole('护理员') or hasRole('前台接待')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PageResponse<ElderResponse>>> getElderList(
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
@@ -68,7 +68,7 @@ public class ElderController {
      * 根据ID获取老人信息
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管') or hasRole('护理员') or hasRole('前台接待')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<ElderResponse>> getElderById(@PathVariable Long id) {
         ElderResponse elder = elderService.getElderById(id);
         return ResponseEntity.ok(ApiResponse.success(elder));
@@ -78,7 +78,7 @@ public class ElderController {
      * 创建老人档案
      */
     @PostMapping
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<ElderResponse>> createElder(@Valid @RequestBody ElderCreateRequest request) {
         try {
             ElderResponse elder = elderService.createElder(request);
@@ -96,7 +96,7 @@ public class ElderController {
      * 更新老人档案
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长') or hasRole('护理主管')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<ElderResponse>> updateElder(
             @PathVariable Long id,
             @Valid @RequestBody ElderUpdateRequest request) {
@@ -116,7 +116,7 @@ public class ElderController {
      * 删除老人档案
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('系统管理员') or hasRole('院长')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<String>> deleteElder(@PathVariable Long id) {
         try {
             elderService.deleteElder(id);
